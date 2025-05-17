@@ -13,7 +13,7 @@ import (
 
 // ToolOption is a function that configures a Tool.
 // It provides a flexible way to set various properties of a Tool using the functional options pattern.
-type ToolOption func(*ToolDefinition)
+type ToolOption func(*Tool)
 
 type ToolInputSchema struct {
 	Type       string                 `json:"type"`
@@ -23,11 +23,15 @@ type ToolInputSchema struct {
 
 // Tool represents a tool definition in MCP
 type Tool struct {
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	Schema      json.RawMessage `json:"schema"`
-	Fingerprint string          `json:"fingerprint,omitempty"` // Schema fingerprint
-	Checksum    string          `json:"checksum,omitempty"`    // Tool definition checksum
+	Name             string           `json:"name"`
+	Description      string           `json:"description"`
+	Schema           json.RawMessage  `json:"schema"`
+	Parameters       map[string]any   `json:"parameters"`
+	InputSchema      ToolInputSchema  `json:"inputSchema"`
+	Annotations      ToolAnnotation   `json:"annotations"`
+	SecurityMetadata SecurityMetadata `json:"secMetaData"`
+	Fingerprint      string           `json:"fingerprint,omitempty"` // Schema fingerprint
+	Checksum         string           `json:"checksum,omitempty"`    // Tool definition checksum
 }
 
 // ToolSet represents a collection of tools with security information
@@ -54,8 +58,8 @@ type ToolAnnotation struct {
 // NewTool creates a new Tool with the given name and options.
 // The tool will have an object-type input schema with configurable properties.
 // Options are applied in order, allowing for flexible tool configuration.
-func NewTool(name string, opts ...ToolOption) ToolDefinition {
-	tool := ToolDefinition{
+func NewTool(name string, opts ...ToolOption) Tool {
+	tool := Tool{
 		Name: name,
 		InputSchema: ToolInputSchema{
 			Type:       "object",
@@ -76,17 +80,6 @@ func NewTool(name string, opts ...ToolOption) ToolDefinition {
 	}
 
 	return tool
-}
-
-type ToolDefinition struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Parameters  map[string]any `json:"parameters"`
-	// A JSON Schema object defining the expected parameters for the tool.
-	InputSchema ToolInputSchema `json:"inputSchema"`
-	// Alternative to InputSchema - allows arbitrary JSON Schema to be provided
-	RawInputSchema json.RawMessage `json:"-"` // Hide this from JSON marshaling
-	Annotations    ToolAnnotation  `json:"annotations"`
 }
 
 // ToolCallRequest represents the LLM's request to execute a specific tool.
