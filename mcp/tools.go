@@ -169,7 +169,7 @@ func (tr *ToolRegistry) GetTool(name string) (Tool, error) {
 	if tr.securityEnabled && tr.validateChecksums {
 		expectedChecksum, err := generateToolChecksum(tool)
 		if err != nil {
-			return Tool{}, err
+			return Tool{}, fmt.Errorf("failed to generate expected checksum: %v", err)
 		}
 
 		if expectedChecksum != tool.SecurityMetadata.Checksum {
@@ -178,7 +178,7 @@ func (tr *ToolRegistry) GetTool(name string) (Tool, error) {
 
 		expectedSignature, err := generateSchemaFingerprint(tool.Schema)
 		if err != nil {
-			return Tool{}, err
+			return Tool{}, fmt.Errorf("failed to generate expected signature: %v", err)
 		}
 
 		if expectedSignature != tool.SecurityMetadata.Signature {

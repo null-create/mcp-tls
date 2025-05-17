@@ -133,7 +133,7 @@ func verifyHMAC(data, receivedSignature []byte, key []byte) error {
 
 // Secure marshals the input data, encrypts it, signs the result,
 // and packages it into a SecuredPayload, returning the marshalled payload bytes.
-// Input 'data' should be a pointer to your Context or ContextUpdate struct.
+// Input 'data' should be a pointer to a tool or mcp context.
 func Secure(data any, encryptionKey, signingKey []byte) ([]byte, error) {
 	// 1. Marshal the original data structure to JSON
 	plaintext, err := json.Marshal(data)
