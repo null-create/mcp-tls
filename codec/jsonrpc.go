@@ -2,7 +2,6 @@ package codec
 
 import (
 	"encoding/json"
-	"log"
 	"maps"
 )
 
@@ -13,8 +12,17 @@ const (
 	JsonRPCVersion         string = "2.0"
 )
 
+// JSON-RPC 2.0 standard error codes
+const (
+	PARSE_ERROR      = -32700
+	INVALID_REQUEST  = -32600
+	METHOD_NOT_FOUND = -32601
+	INVALID_PARAMS   = -32602
+	INTERNAL_ERROR   = -32603
+)
+
 // Generic interface for JSON RPC Messages
-type JSONRPCMessage interface{}
+type JSONRPCMessage any
 
 type JSONRPCRequest struct {
 	JSONRPC string          `json:"jsonrpc"`
@@ -23,12 +31,12 @@ type JSONRPCRequest struct {
 	ID      int64           `json:"id"`
 }
 
-func (j *JSONRPCRequest) ToJSON() []byte {
+func (j *JSONRPCRequest) MarshalJSON() ([]byte, error) {
 	b, err := json.Marshal(j)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return b
+	return b, nil
 }
 
 type JSONRPCResponse struct {
@@ -38,12 +46,12 @@ type JSONRPCResponse struct {
 	ID      int64           `json:"id"`
 }
 
-func (j *JSONRPCResponse) ToJSON() []byte {
+func (j *JSONRPCResponse) MarshalJSON() ([]byte, error) {
 	b, err := json.Marshal(j.Result)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return b
+	return b, nil
 }
 
 func NewJSONRPCResponse() JSONRPCResponse {
@@ -57,12 +65,12 @@ type JSONRCPNotification struct {
 	Notification
 }
 
-func (j *JSONRCPNotification) ToJSON() []byte {
+func (j *JSONRCPNotification) MarshalJSON() ([]byte, error) {
 	b, err := json.Marshal(j)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return b
+	return b, nil
 }
 
 type JSONRPCError struct {
@@ -79,12 +87,12 @@ type Notification struct {
 	Params NotificationParams `json:"params,omitempty"` // Often null/omitted for simple notifications
 }
 
-func (n *Notification) ToJSON() []byte {
+func (n *Notification) MarshalJSON() ([]byte, error) {
 	b, err := json.Marshal(n)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return b
+	return b, nil
 }
 
 type NotificationParams struct {
@@ -93,7 +101,7 @@ type NotificationParams struct {
 }
 
 func (n NotificationParams) MarshalJSON() ([]byte, error) {
-	base := make(map[string]interface{})
+	base := make(map[string]any)
 
 	if n.Meta != nil {
 		base["_meta"] = n.Meta
@@ -105,34 +113,17 @@ func (n NotificationParams) MarshalJSON() ([]byte, error) {
 }
 
 func (p *NotificationParams) UnmarshalJSON(data []byte) error {
-	var raw map[string]interface{}
+	var raw map[string]any
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 	p.AdditionalFields = raw
 
 	if meta, ok := raw["_meta"]; ok {
-		if metaMap, ok := meta.(map[string]interface{}); ok {
+		if metaMap, ok := meta.(map[string]any); ok {
 			p.Meta = metaMap
 		}
 	}
 
 	return nil
-}
-
-// JSON-RPC 2.0 standard error codes
-const (
-	PARSE_ERROR      = -32700
-	INVALID_REQUEST  = -32600
-	METHOD_NOT_FOUND = -32601
-	INVALID_PARAMS   = -32602
-	INTERNAL_ERROR   = -32603
-)
-
-var rpcErrorMessages = map[int]string{
-	PARSE_ERROR:      "Parse error",
-	INVALID_REQUEST:  "Invalid Request",
-	METHOD_NOT_FOUND: "Method not found",
-	INVALID_PARAMS:   "Invalid params",
-	INTERNAL_ERROR:   "Internal error",
 }
