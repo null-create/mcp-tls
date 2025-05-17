@@ -5,12 +5,7 @@ import (
 	"maps"
 )
 
-const (
-	// DefaultProtocolVersion defines a fallback or standard version if negotiation fails simply.
-	// In reality, the server dictates the chosen version based on the client's offer.
-	DefaultProtocolVersion string = "2025-3-25"
-	JsonRPCVersion         string = "2.0"
-)
+const JsonRPCVersion string = "2.0"
 
 // JSON-RPC 2.0 standard error codes
 const (
