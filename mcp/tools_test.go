@@ -1,11 +1,9 @@
-package validate
+package mcp
 
 import (
 	"context"
 	"encoding/json"
 	"testing"
-
-	msg "github.com/null-create/mcp-tls/mcp"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,7 +31,7 @@ var testSchemaOutputBasic = json.RawMessage(`{
 
 var testSchemaInvalidSyntax = json.RawMessage(`{"type": "object", "properties": {"location": }}`) // Invalid JSON
 
-var availableToolsFixture = []msg.ToolDescription{
+var availableToolsFixture = []ToolDescription{
 	{
 		Name:         "get_weather",
 		Description:  "Fetches weather",
@@ -70,105 +68,105 @@ func TestValidateToolSchema(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		toolCall       msg.ToolCall
-		availableTools []msg.ToolDescription
-		expectedStatus msg.ExecutionStatus
+		toolCall       ToolCall
+		availableTools []ToolDescription
+		expectedStatus ExecutionStatus
 		expectError    bool
 		errorContains  string // Substring to check in error message if expectError is true
 	}{
 		{
 			name: "Valid Arguments",
-			toolCall: msg.ToolCall{
+			toolCall: ToolCall{
 				FunctionName: "get_weather",
 				Arguments:    json.RawMessage(`{"location": "London", "unit": "celsius"}`),
 			},
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
 			name: "Valid Arguments (Optional Field Missing)",
-			toolCall: msg.ToolCall{
+			toolCall: ToolCall{
 				FunctionName: "get_weather",
 				Arguments:    json.RawMessage(`{"location": "Paris"}`), // unit is optional
 			},
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
 			name: "Invalid Arguments (Type Mismatch)",
-			toolCall: msg.ToolCall{
+			toolCall: ToolCall{
 				FunctionName: "get_weather",
 				Arguments:    json.RawMessage(`{"location": 123}`), // location expects string
 			},
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "location: Invalid type. Expected: string, given: integer",
 		},
 		{
 			name: "Invalid Arguments (Missing Required Field)",
-			toolCall: msg.ToolCall{
+			toolCall: ToolCall{
 				FunctionName: "get_weather",
 				Arguments:    json.RawMessage(`{"unit": "fahrenheit"}`), // location is required
 			},
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "location is required",
 		},
 		{
 			name: "Invalid Arguments (Enum Mismatch)",
-			toolCall: msg.ToolCall{
+			toolCall: ToolCall{
 				FunctionName: "get_weather",
 				Arguments:    json.RawMessage(`{"location": "Tokyo", "unit": "kelvin"}`), // kelvin not in enum
 			},
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "unit: unit must be one of the following: \"celsius\", \"fahrenheit\"",
 		},
 		{
 			name: "Invalid Arguments (Not JSON)",
-			toolCall: msg.ToolCall{
+			toolCall: ToolCall{
 				FunctionName: "get_weather",
 				Arguments:    json.RawMessage(`{location: "Berlin"}`), // Invalid JSON syntax
 			},
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusError, // This fails during schema.Validate loading the document
+			expectedStatus: StatusError, // This fails during schema.Validate loading the document
 			expectError:    true,
 			errorContains:  "internal validation error", // gojsonschema validation process error
 		},
 		{
 			name: "Tool Not Found",
-			toolCall: msg.ToolCall{
+			toolCall: ToolCall{
 				FunctionName: "unknown_tool",
 				Arguments:    json.RawMessage(`{}`),
 			},
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusError,
+			expectedStatus: StatusError,
 			expectError:    true,
 			errorContains:  "tool description lookup failed",
 		},
 		{
 			name: "No Input Schema Defined",
-			toolCall: msg.ToolCall{
+			toolCall: ToolCall{
 				FunctionName: "no_schema_tool",
 				Arguments:    json.RawMessage(`{"any": "data"}`),
 			},
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 		},
 		{
 			name: "Invalid Input Schema Syntax",
-			toolCall: msg.ToolCall{
+			toolCall: ToolCall{
 				FunctionName: "bad_input_schema_tool",
 				Arguments:    json.RawMessage(`{"location": "Rome"}`),
 			},
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusError, // Error occurs when loading the schema
+			expectedStatus: StatusError, // Error occurs when loading the schema
 			expectError:    true,
 			errorContains:  "internal schema error",
 		},
@@ -194,17 +192,17 @@ func TestValidateToolSchema(t *testing.T) {
 // --- Tests for ValidateToolCallOutput ---
 
 func TestValidateToolCallOutput(t *testing.T) {
-	toolCallWeather := msg.ToolCall{FunctionName: "get_weather"}
-	toolCallNoSchema := msg.ToolCall{FunctionName: "no_schema_tool"}
-	toolCallBadOutputSchema := msg.ToolCall{FunctionName: "bad_output_schema_tool"}
-	toolCallUnknown := msg.ToolCall{FunctionName: "unknown_tool"}
+	toolCallWeather := ToolCall{FunctionName: "get_weather"}
+	toolCallNoSchema := ToolCall{FunctionName: "no_schema_tool"}
+	toolCallBadOutputSchema := ToolCall{FunctionName: "bad_output_schema_tool"}
+	toolCallUnknown := ToolCall{FunctionName: "unknown_tool"}
 
 	tests := []struct {
 		name           string
 		rawResult      string
-		toolCall       msg.ToolCall
-		availableTools []msg.ToolDescription
-		expectedStatus msg.ExecutionStatus
+		toolCall       ToolCall
+		availableTools []ToolDescription
+		expectedStatus ExecutionStatus
 		expectError    bool
 		errorContains  string
 	}{
@@ -213,7 +211,7 @@ func TestValidateToolCallOutput(t *testing.T) {
 			rawResult:      `{"temperature": 25.5, "conditions": "Sunny"}`,
 			toolCall:       toolCallWeather,
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -221,7 +219,7 @@ func TestValidateToolCallOutput(t *testing.T) {
 			rawResult:      `{"temperature": "hot", "conditions": "Cloudy"}`, // temp should be number
 			toolCall:       toolCallWeather,
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "temperature: Invalid type. Expected: number, given: string",
 		},
@@ -230,7 +228,7 @@ func TestValidateToolCallOutput(t *testing.T) {
 			rawResult:      `{"temperature": 10}`, // conditions missing
 			toolCall:       toolCallWeather,
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "conditions is required",
 		},
@@ -239,7 +237,7 @@ func TestValidateToolCallOutput(t *testing.T) {
 			rawResult:      `Temperature is 15`, // Not JSON
 			toolCall:       toolCallWeather,
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusError, // Fails during document loading
+			expectedStatus: StatusError, // Fails during document loading
 			expectError:    true,
 			errorContains:  "internal output validation error",
 		},
@@ -248,7 +246,7 @@ func TestValidateToolCallOutput(t *testing.T) {
 			rawResult:      `{}`,
 			toolCall:       toolCallUnknown,
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusError,
+			expectedStatus: StatusError,
 			expectError:    true,
 			errorContains:  "tool description lookup failed",
 		},
@@ -257,7 +255,7 @@ func TestValidateToolCallOutput(t *testing.T) {
 			rawResult:      `{"any": "data", "is": "fine"}`,
 			toolCall:       toolCallNoSchema, // This tool has no output schema
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusSucceeded, // Should succeed, skipping validation
+			expectedStatus: StatusSucceeded, // Should succeed, skipping validation
 			expectError:    false,
 		},
 		{
@@ -265,7 +263,7 @@ func TestValidateToolCallOutput(t *testing.T) {
 			rawResult:      `{"temperature": 20, "conditions": "Rainy"}`, // Result is valid
 			toolCall:       toolCallBadOutputSchema,                      // But schema is bad
 			availableTools: availableToolsFixture,
-			expectedStatus: msg.StatusError, // Error occurs when loading the schema
+			expectedStatus: StatusError, // Error occurs when loading the schema
 			expectError:    true,
 			errorContains:  "internal output schema error",
 		},
