@@ -60,7 +60,7 @@ func NewTool(name string, opts ...ToolOption) Tool {
 		Name: name,
 		InputSchema: ToolInputSchema{
 			Type:       "object",
-			Properties: make(map[string]interface{}),
+			Properties: make(map[string]any),
 			Required:   nil, // Will be omitted from JSON if empty
 		},
 		Annotations: ToolAnnotation{
