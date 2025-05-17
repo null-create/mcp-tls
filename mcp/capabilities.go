@@ -18,6 +18,10 @@ type LoggingCapabilities struct {
 	// Empty object {} indicates support
 }
 
+type ToolValidationCapabilities struct {
+	// Empty object {} indicates support
+}
+
 type PromptCapabilities struct {
 	ListChanged bool `json:"listChanged,omitempty"`
 }
@@ -62,7 +66,7 @@ type ClientCapabilities struct {
 	Roots        *RootCapabilities          `json:"roots,omitempty"`
 	Sampling     *SamplingCapabilities      `json:"sampling,omitempty"`
 	Experimental ExperimentalCapabilities   `json:"experimental,omitempty"`
-	Security     ClientSecurityCapabilities `json:"security,omitempty"`
+	Security     ClientSecurityCapabilities `json:"security"`
 }
 
 func NewClientCapabilities() ClientCapabilities {
@@ -82,7 +86,7 @@ type ServerCapabilities struct {
 	Resources    *ResourceCapabilities    `json:"resources,omitempty"`
 	Tools        *ToolCapabilities        `json:"tools,omitempty"`
 	Experimental ExperimentalCapabilities `json:"experimental,omitempty"`
-	Security     SecurityCapabilities     `json:"security,omitempty"`
+	Security     SecurityCapabilities     `json:"security"`
 }
 
 // Request is a message that expects a response

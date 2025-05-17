@@ -29,8 +29,6 @@ type Tool struct {
 	InputSchema      ToolInputSchema  `json:"inputSchema"`
 	Annotations      ToolAnnotation   `json:"annotations"`
 	SecurityMetadata SecurityMetadata `json:"secMetaData"`
-	Fingerprint      string           `json:"fingerprint,omitempty"` // Schema fingerprint
-	Checksum         string           `json:"checksum,omitempty"`    // Tool definition checksum
 }
 
 // ToolSet represents a collection of tools with security information
@@ -102,7 +100,6 @@ type ToolDescription struct {
 	Description  string          `json:"description"`
 	InputSchema  json.RawMessage `json:"input_schema"`            // Expects JSON Schema definition here
 	OutputSchema json.RawMessage `json:"output_schema,omitempty"` // Optional: Schema for the tool's result
-	// Potentially SecurityMetadata for verifying the description itself
 }
 
 // ToolResultMetadata provides details about the execution of a tool.
@@ -141,20 +138,20 @@ func (tr *ToolRegistry) SetSecurityOptions(validateChecksums, rejectUnsignedTool
 // RegisterTool adds a tool to the registry with security checks
 func (tr *ToolRegistry) RegisterTool(tool Tool) error {
 	if tr.securityEnabled {
-		if tool.Checksum == "" {
+		if tool.SecurityMetadata.Checksum == "" {
 			checksum, err := generateToolChecksum(tool)
 			if err != nil {
 				return err
 			}
-			tool.Checksum = checksum
+			tool.SecurityMetadata.Checksum = checksum
 		}
 
-		if tool.Fingerprint == "" {
+		if tool.SecurityMetadata.Signature == "" {
 			fingerprint, err := generateSchemaFingerprint(tool.Schema)
 			if err != nil {
 				return err
 			}
-			tool.Fingerprint = fingerprint
+			tool.SecurityMetadata.Signature = fingerprint
 		}
 	}
 
@@ -175,21 +172,21 @@ func (tr *ToolRegistry) GetTool(name string) (Tool, error) {
 			return Tool{}, err
 		}
 
-		if expectedChecksum != tool.Checksum {
+		if expectedChecksum != tool.SecurityMetadata.Checksum {
 			return Tool{}, errors.New("tool checksum validation failed")
 		}
 
-		expectedFingerprint, err := generateSchemaFingerprint(tool.Schema)
+		expectedSignature, err := generateSchemaFingerprint(tool.Schema)
 		if err != nil {
 			return Tool{}, err
 		}
 
-		if expectedFingerprint != tool.Fingerprint {
+		if expectedSignature != tool.SecurityMetadata.Signature {
 			return Tool{}, errors.New("schema fingerprint validation failed")
 		}
 	}
 
-	if tr.securityEnabled && tr.rejectUnsignedTools && (tool.Checksum == "" || tool.Fingerprint == "") {
+	if tr.securityEnabled && tr.rejectUnsignedTools && (tool.SecurityMetadata.Checksum == "" || tool.SecurityMetadata.Signature == "") {
 		return Tool{}, errors.New("unsigned tool rejected")
 	}
 
@@ -249,7 +246,6 @@ func generateToolChecksum(tool Tool) (string, error) {
 		Name:        tool.Name,
 		Description: tool.Description,
 		Schema:      tool.Schema,
-		Fingerprint: tool.Fingerprint,
 	}
 
 	data, err := json.Marshal(toolCopy)
@@ -280,9 +276,9 @@ func (e ToolVerificationError) Error() string {
 
 // ErrorCode constants for tool verification
 const (
-	ErrChecksumMismatch      = 4001
-	ErrFingerprintMismatch   = 4002
-	ErrUnsignedTool          = 4003
-	ErrToolNotFound          = 4004
-	ErrInvalidToolDefinition = 4005
+	ErrChecksumMismatch      int = 4001
+	ErrFingerprintMismatch   int = 4002
+	ErrUnsignedTool          int = 4003
+	ErrToolNotFound          int = 4004
+	ErrInvalidToolDefinition int = 4005
 )

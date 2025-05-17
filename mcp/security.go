@@ -23,11 +23,11 @@ const (
 
 // SecurityMetadata contains information used to verify the trust and integrity of components.
 type SecurityMetadata struct {
-	Source        string `json:"source,omitempty"`         // Origin of the data (e.g., "trusted-registry", "user-provided", "api-endpoint-v2")
-	Signature     string `json:"signature,omitempty"`      // Cryptographic signature to verify authenticity/integrity (e.g., JWT, HMAC-SHA256)
-	PublicKeyID   string `json:"public_key_id,omitempty"`  // Identifier for the key needed to verify the signature
-	Version       string `json:"version,omitempty"`        // Version identifier for the tool description or other signed component
-	IntegrityHash string `json:"integrity_hash,omitempty"` // Hash of the component itself (e.g., hash of the ToolDescription structure)
+	Source      string `json:"source,omitempty"`        // Origin of the data (e.g., "trusted-registry", "user-provided", "api-endpoint-v2")
+	Signature   string `json:"signature,omitempty"`     // Cryptographic signature to verify authenticity/integrity (e.g., JWT, HMAC-SHA256)
+	PublicKeyID string `json:"public_key_id,omitempty"` // Identifier for the key needed to verify the signature
+	Version     string `json:"version,omitempty"`       // Version identifier for the tool description or other signed component
+	Checksum    string `json:"checksum,omitempty"`      // Hash of the component itself (e.g., hash of the ToolDescription structure)
 }
 
 // ContextMetadata holds general metadata for the context snapshot.
