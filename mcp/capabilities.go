@@ -85,7 +85,12 @@ type ServerCapabilities struct {
 	Security     SecurityCapabilities     `json:"security,omitempty"`
 }
 
-// Initialize Request/Response Payloads
+// Request is a message that expects a response
+// It corresponds to a method call with optional parameters.
+type Request struct {
+	Method string `json:"method"`
+	Params any    `json:"params,omitempty"`
+}
 
 type Result struct {
 	// This result property is reserved by the protocol to allow clients and

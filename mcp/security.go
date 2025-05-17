@@ -1,12 +1,12 @@
 package mcp
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
+	"context"
 	"errors"
 	"fmt"
-	"sort"
+	"strings"
+
+	"github.com/xeipuuv/gojsonschema"
 )
 
 // Role defines the originator of a message in the conversation history.
@@ -55,173 +55,101 @@ type SecurityPolicy struct {
 	DataHandlingRules   string   `json:"data_handling_rules,omitempty"`     // Instructions or policy references for data privacy/handling
 }
 
-// ToolRegistry maintains the set of trusted tools and schemas
-type ToolRegistry struct {
-	tools               map[string]Tool
-	securityEnabled     bool
-	validateChecksums   bool
-	rejectUnsignedTools bool
-}
-
-// NewToolRegistry creates a new tool registry
-func NewToolRegistry(securityEnabled bool) *ToolRegistry {
-	return &ToolRegistry{
-		tools:           make(map[string]Tool),
-		securityEnabled: securityEnabled,
-	}
-}
-
-// SetSecurityOptions configures the security options for the tool registry
-func (tr *ToolRegistry) SetSecurityOptions(validateChecksums, rejectUnsignedTools bool) {
-	tr.validateChecksums = validateChecksums
-	tr.rejectUnsignedTools = rejectUnsignedTools
-}
-
-// RegisterTool adds a tool to the registry with security checks
-func (tr *ToolRegistry) RegisterTool(tool Tool) error {
-	if tr.securityEnabled {
-		if tool.Checksum == "" {
-			checksum, err := generateToolChecksum(tool)
-			if err != nil {
-				return err
-			}
-			tool.Checksum = checksum
-		}
-
-		if tool.Fingerprint == "" {
-			fingerprint, err := generateSchemaFingerprint(tool.Schema)
-			if err != nil {
-				return err
-			}
-			tool.Fingerprint = fingerprint
+// FindToolDescription retrieves the trusted tool description by name.
+// In a real system, this might involve looking up in a secure registry
+// and potentially verifying signatures/sources stored in SecurityMetadata.
+func FindToolDescription(name string, availableTools []ToolDescription) (*ToolDescription, error) {
+	for _, tool := range availableTools {
+		if tool.Name == name {
+			// TODO: Add verification of tool description source/integrity here
+			// based on tool.SecurityMetadata if available.
+			return &tool, nil // Return pointer to avoid copying large schemas
 		}
 	}
-
-	tr.tools[tool.Name] = tool
-	return nil
+	return nil, fmt.Errorf("tool '%s' not found or not permitted", name)
 }
 
-// GetTool retrieves a tool from the registry with security validation
-func (tr *ToolRegistry) GetTool(name string) (Tool, error) {
-	tool, exists := tr.tools[name]
-	if !exists {
-		return Tool{}, fmt.Errorf("tool '%s' not found", name)
+// ValidateToolSchema is called by the orchestrator when an LLM requests a tool call.
+func ValidateToolSchema(
+	ctx context.Context,
+	toolCall ToolCall,
+	availableTools []ToolDescription,
+) (executionStatus ExecutionStatus, execErr error) {
+	toolDesc, err := FindToolDescription(toolCall.FunctionName, availableTools)
+	if err != nil {
+		return StatusError, fmt.Errorf("tool description lookup failed: %w", err)
 	}
 
-	if tr.securityEnabled && tr.validateChecksums {
-		expectedChecksum, err := generateToolChecksum(tool)
+	// Only validate if schema is provided
+	if len(toolDesc.InputSchema) > 0 {
+		schemaLoader := gojsonschema.NewBytesLoader(toolDesc.InputSchema)
+		documentLoader := gojsonschema.NewBytesLoader(toolCall.Arguments)
+		schema, err := gojsonschema.NewSchema(schemaLoader)
 		if err != nil {
-			return Tool{}, err
+			return StatusError, fmt.Errorf("internal schema error for tool '%s'", toolDesc.Name)
 		}
 
-		if expectedChecksum != tool.Checksum {
-			return Tool{}, errors.New("tool checksum validation failed")
-		}
-
-		expectedFingerprint, err := generateSchemaFingerprint(tool.Schema)
+		result, err := schema.Validate(documentLoader)
 		if err != nil {
-			return Tool{}, err
+			return StatusError, fmt.Errorf("internal validation error for tool '%s'", toolDesc.Name)
 		}
 
-		if expectedFingerprint != tool.Fingerprint {
-			return Tool{}, errors.New("schema fingerprint validation failed")
+		if !result.Valid() {
+			var validationErrors []string
+			for _, desc := range result.Errors() {
+				validationErrors = append(validationErrors, fmt.Sprintf("- %s", desc))
+			}
+			errorMsg := fmt.Sprintf("Input validation failed for tool '%s':\n%s",
+				toolDesc.Name, strings.Join(validationErrors, "\n"))
+			fmt.Println("SECURITY ALERT:", errorMsg) // Log prominently
+			return StatusFailed, errors.New(errorMsg)
 		}
+		fmt.Printf("Input arguments for tool '%s' validated successfully.\n", toolDesc.Name)
+	} else {
+		return StatusFailed, fmt.Errorf("no InputSchema defined for tool '%s'", toolDesc.Name)
 	}
 
-	if tr.securityEnabled && tr.rejectUnsignedTools && (tool.Checksum == "" || tool.Fingerprint == "") {
-		return Tool{}, errors.New("unsigned tool rejected")
-	}
-
-	return tool, nil
+	return StatusSucceeded, nil
 }
 
-// ListTools returns all registered tools
-func (tr *ToolRegistry) ListTools() ToolSet {
-	tools := make([]Tool, 0, len(tr.tools))
-	for _, tool := range tr.tools {
-		tools = append(tools, tool)
-	}
-
-	// Sort tools by name for consistent ordering
-	sort.Slice(tools, func(i, j int) bool {
-		return tools[i].Name < tools[j].Name
-	})
-
-	return ToolSet{
-		Tools:                 tools,
-		SecurityEnabled:       tr.securityEnabled,
-		SchemaFingerprintAlgo: "SHA-256",
-		ChecksumAlgo:          "SHA-256",
-	}
-}
-
-// canonicalizeJson converts a JSON object to a canonical form for consistent hashing
-func canonicalizeJson(data json.RawMessage) (json.RawMessage, error) {
-	var obj interface{}
-	if err := json.Unmarshal(data, &obj); err != nil {
-		return nil, err
-	}
-
-	// Sort keys and ensure consistent serialization
-	canonical, err := json.Marshal(obj)
+func ValidateToolCallOutput(
+	rawResult string,
+	toolCall ToolCall,
+	availableTools []ToolDescription,
+) (ExecutionStatus, error) {
+	toolDesc, err := FindToolDescription(toolCall.FunctionName, availableTools)
 	if err != nil {
-		return nil, err
+		return StatusError, fmt.Errorf("tool description lookup failed: %w", err)
 	}
 
-	return canonical, nil
-}
+	if len(toolDesc.OutputSchema) > 0 {
+		outputSchemaLoader := gojsonschema.NewBytesLoader(toolDesc.OutputSchema)
+		outputDocumentLoader := gojsonschema.NewStringLoader(rawResult)
 
-// generateSchemaFingerprint creates a fingerprint of the schema using SHA-256
-func generateSchemaFingerprint(schema json.RawMessage) (string, error) {
-	canonical, err := canonicalizeJson(schema)
-	if err != nil {
-		return "", err
+		outputSchema, err := gojsonschema.NewSchema(outputSchemaLoader)
+		if err != nil {
+			// Schema itself is invalid!
+			fmt.Printf("ERROR: Invalid OutputSchema for tool '%s': %v\n", toolDesc.Name, err)
+			return StatusError, fmt.Errorf("internal output schema error for tool '%s'", toolDesc.Name)
+		}
+
+		outputResult, err := outputSchema.Validate(outputDocumentLoader)
+		if err != nil {
+			fmt.Printf("ERROR: Output validation process error for tool '%s': %v\n", toolDesc.Name, err)
+			return StatusError, fmt.Errorf("internal output validation error for tool '%s'", toolDesc.Name)
+		}
+
+		if !outputResult.Valid() {
+			var validationErrors []string
+			for _, desc := range outputResult.Errors() {
+				validationErrors = append(validationErrors, fmt.Sprintf("- %s", desc))
+			}
+			errorMsg := fmt.Sprintf("Tool '%s' output failed validation:\n%s\nRaw Output: %s",
+				toolDesc.Name, strings.Join(validationErrors, "\n"), rawResult)
+			fmt.Println("SECURITY ALERT:", errorMsg)
+			return StatusFailed, errors.New(errorMsg)
+		}
+		fmt.Printf("Output content for tool '%s' validated successfully.\n", toolDesc.Name)
 	}
-
-	hash := sha256.Sum256(canonical)
-	return hex.EncodeToString(hash[:]), nil
+	return StatusSucceeded, nil
 }
-
-// generateToolChecksum creates a checksum of the entire tool definition using SHA-256
-func generateToolChecksum(tool Tool) (string, error) {
-	toolCopy := Tool{
-		Name:        tool.Name,
-		Description: tool.Description,
-		Schema:      tool.Schema,
-		Fingerprint: tool.Fingerprint,
-	}
-
-	data, err := json.Marshal(toolCopy)
-	if err != nil {
-		return "", err
-	}
-
-	// Use canonical JSON for consistent checksums
-	canonical, err := canonicalizeJson(data)
-	if err != nil {
-		return "", err
-	}
-
-	hash := sha256.Sum256(canonical)
-	return hex.EncodeToString(hash[:]), nil
-}
-
-// ToolVerificationError represents an error during tool verification
-type ToolVerificationError struct {
-	Message string
-	Code    int
-}
-
-// Error returns the error message
-func (e ToolVerificationError) Error() string {
-	return e.Message
-}
-
-// ErrorCode constants for tool verification
-const (
-	ErrChecksumMismatch      = 4001
-	ErrFingerprintMismatch   = 4002
-	ErrUnsignedTool          = 4003
-	ErrToolNotFound          = 4004
-	ErrInvalidToolDefinition = 4005
-)
