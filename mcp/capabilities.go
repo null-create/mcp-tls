@@ -27,18 +27,6 @@ type ResourceCapabilities struct {
 	ListChanged bool `json:"listChanged,omitempty"`
 }
 
-// ServerInfo contains information about the server
-type ServerInfo struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-}
-
-// ClientInfo contains information about the client
-type ClientInfo struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-}
-
 // SecurityCapabilities defines the security-related capabilities for MCP-TLS
 type SecurityCapabilities struct {
 	SchemaFingerprint  bool `json:"schemaFingerprint"`
@@ -62,8 +50,8 @@ type ClientToolCapabilities struct {
 	Security *ClientSecurityCapabilities `json:"security,omitempty"`
 }
 
-// Capabilities represents all capabilities supported by the server
-type Capabilities struct {
+// ServerToolCapabilities represents all capabilities supported by the server
+type ServerToolCapabilities struct {
 	Tools *ToolCapabilities `json:"tools,omitempty"`
 }
 
@@ -131,9 +119,9 @@ type InitializeResult struct {
 	// The version of the Model Context Protocol that the server wants to use.
 	// This may not match the version that the client requested. If the client cannot
 	// support this version, it MUST disconnect.
-	ProtocolVersion string       `json:"protocolVersion"`
-	Capabilities    Capabilities `json:"capabilities"`
-	ServerInfo      ServerInfo   `json:"serverInfo"`
+	ProtocolVersion string                 `json:"protocolVersion"`
+	Capabilities    ServerToolCapabilities `json:"capabilities"`
+	ServerInfo      Implementation         `json:"serverInfo"`
 	// Instructions describing how to use the server and its features.
 	//
 	// This can be used by clients to improve the LLM's understanding of
@@ -144,7 +132,7 @@ type InitializeResult struct {
 
 // InitializeParams represents parameters for the initialize method
 type InitializeParams struct {
-	ProtocolVersion string         `json:"protocolVersion"`
-	Capabilities    Capabilities   `json:"capabilities"`
-	ClientInfo      Implementation `json:"clientInfo"`
+	ProtocolVersion string                 `json:"protocolVersion"`
+	Capabilities    ServerToolCapabilities `json:"capabilities"`
+	ClientInfo      Implementation         `json:"clientInfo"`
 }
