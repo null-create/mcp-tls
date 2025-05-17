@@ -215,7 +215,7 @@ func (tr *ToolRegistry) ListTools() ToolSet {
 
 // canonicalizeJson converts a JSON object to a canonical form for consistent hashing
 func canonicalizeJson(data json.RawMessage) (json.RawMessage, error) {
-	var obj interface{}
+	var obj any
 	if err := json.Unmarshal(data, &obj); err != nil {
 		return nil, err
 	}
