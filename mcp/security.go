@@ -80,7 +80,6 @@ func (tr *ToolRegistry) SetSecurityOptions(validateChecksums, rejectUnsignedTool
 // RegisterTool adds a tool to the registry with security checks
 func (tr *ToolRegistry) RegisterTool(tool Tool) error {
 	if tr.securityEnabled {
-		// Generate the checksum and fingerprint if not already present
 		if tool.Checksum == "" {
 			checksum, err := generateToolChecksum(tool)
 			if err != nil {
