@@ -5,6 +5,7 @@ import (
 	"maps"
 )
 
+// Supported JSON-RPC version
 const JsonRPCVersion string = "2.0"
 
 // JSON-RPC 2.0 standard error codes
