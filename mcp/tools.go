@@ -114,17 +114,3 @@ type ToolCallResult struct {
 	ToolResultMetadata
 	Content []Content `json:"content"` // Can be TextContent, ImageContent, or EmbeddedResource
 }
-
-// ListToolsRequest requests a list of available tools.
-type ListToolsRequest struct {
-	PaginatedRequest
-	Page    int `json:"page,omitempty"`
-	PerPage int `json:"per_page,omitempty"`
-}
-
-// ListToolsResult returns a list of tools.
-type ListToolsResult struct {
-	Tools []ToolDefinition `json:"tools"`
-	Total int              `json:"total"`
-	PaginatedResult
-}

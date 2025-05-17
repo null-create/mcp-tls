@@ -71,9 +71,10 @@ type Capabilities struct {
 type ExperimentalCapabilities map[string]any
 
 type ClientCapabilities struct {
-	Roots        *RootCapabilities        `json:"roots,omitempty"`
-	Sampling     *SamplingCapabilities    `json:"sampling,omitempty"`
-	Experimental ExperimentalCapabilities `json:"experimental,omitempty"`
+	Roots        *RootCapabilities          `json:"roots,omitempty"`
+	Sampling     *SamplingCapabilities      `json:"sampling,omitempty"`
+	Experimental ExperimentalCapabilities   `json:"experimental,omitempty"`
+	Security     ClientSecurityCapabilities `json:"security,omitempty"`
 }
 
 func NewClientCapabilities() ClientCapabilities {
@@ -81,6 +82,7 @@ func NewClientCapabilities() ClientCapabilities {
 		Roots:        &RootCapabilities{ListChanged: true},
 		Sampling:     &SamplingCapabilities{},
 		Experimental: ExperimentalCapabilities{},
+		Security:     ClientSecurityCapabilities{},
 	}
 }
 
@@ -92,6 +94,7 @@ type ServerCapabilities struct {
 	Resources    *ResourceCapabilities    `json:"resources,omitempty"`
 	Tools        *ToolCapabilities        `json:"tools,omitempty"`
 	Experimental ExperimentalCapabilities `json:"experimental,omitempty"`
+	Security     SecurityCapabilities     `json:"security,omitempty"`
 }
 
 // Initialize Request/Response Payloads
@@ -141,7 +144,7 @@ type InitializeResult struct {
 
 // InitializeParams represents parameters for the initialize method
 type InitializeParams struct {
-	ProtocolVersion string       `json:"protocolVersion"`
-	Capabilities    Capabilities `json:"capabilities"`
-	ClientInfo      ClientInfo   `json:"clientInfo"`
+	ProtocolVersion string         `json:"protocolVersion"`
+	Capabilities    Capabilities   `json:"capabilities"`
+	ClientInfo      Implementation `json:"clientInfo"`
 }
