@@ -55,6 +55,8 @@ type SecurityPolicy struct {
 	DataHandlingRules   string   `json:"data_handling_rules,omitempty"`     // Instructions or policy references for data privacy/handling
 }
 
+// --- Tool Schema Validation ---
+
 // FindToolDescription retrieves the trusted tool description by name.
 // In a real system, this might involve looking up in a secure registry
 // and potentially verifying signatures/sources stored in SecurityMetadata.
@@ -101,7 +103,7 @@ func ValidateToolSchema(
 			}
 			errorMsg := fmt.Sprintf("Input validation failed for tool '%s':\n%s",
 				toolDesc.Name, strings.Join(validationErrors, "\n"))
-			fmt.Println("SECURITY ALERT:", errorMsg) // Log prominently
+			fmt.Println("SECURITY ALERT:", errorMsg)
 			return StatusFailed, errors.New(errorMsg)
 		}
 		fmt.Printf("Input arguments for tool '%s' validated successfully.\n", toolDesc.Name)
@@ -128,7 +130,6 @@ func ValidateToolCallOutput(
 
 		outputSchema, err := gojsonschema.NewSchema(outputSchemaLoader)
 		if err != nil {
-			// Schema itself is invalid!
 			fmt.Printf("ERROR: Invalid OutputSchema for tool '%s': %v\n", toolDesc.Name, err)
 			return StatusError, fmt.Errorf("internal output schema error for tool '%s'", toolDesc.Name)
 		}
