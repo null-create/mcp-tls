@@ -184,7 +184,6 @@ func generateSchemaFingerprint(schema json.RawMessage) (string, error) {
 
 // generateToolChecksum creates a checksum of the entire tool definition using SHA-256
 func generateToolChecksum(tool Tool) (string, error) {
-	// Create a copy without the checksum field
 	toolCopy := Tool{
 		Name:        tool.Name,
 		Description: tool.Description,
@@ -192,7 +191,6 @@ func generateToolChecksum(tool Tool) (string, error) {
 		Fingerprint: tool.Fingerprint,
 	}
 
-	// Serialize to JSON
 	data, err := json.Marshal(toolCopy)
 	if err != nil {
 		return "", err
