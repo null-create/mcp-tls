@@ -128,9 +128,9 @@ type InitializeResult struct {
 	// The version of the Model Context Protocol that the server wants to use.
 	// This may not match the version that the client requested. If the client cannot
 	// support this version, it MUST disconnect.
-	ProtocolVersion string                 `json:"protocolVersion"`
-	Capabilities    ServerToolCapabilities `json:"capabilities"`
-	ServerInfo      Implementation         `json:"serverInfo"`
+	ProtocolVersion string             `json:"protocolVersion"`
+	Capabilities    ServerCapabilities `json:"capabilities"`
+	ServerInfo      Implementation     `json:"serverInfo"`
 	// Instructions describing how to use the server and its features.
 	//
 	// This can be used by clients to improve the LLM's understanding of
