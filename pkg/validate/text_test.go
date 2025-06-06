@@ -1,7 +1,7 @@
 package validate
 
 import (
-	"reflect" // Used for DeepEqual comparison of slices
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
