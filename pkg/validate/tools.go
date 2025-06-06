@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/null-create/mcp-tls/mcp"
+	"github.com/null-create/mcp-tls/pkg/mcp"
 
 	"github.com/xeipuuv/gojsonschema"
 )
