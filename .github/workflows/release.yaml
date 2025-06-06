@@ -1,0 +1,50 @@
+name: Release MCP-TLS Utility Server
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # required for release creation
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.21
+
+      - name: Read version from VERSION file
+        id: version
+        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Build binary
+        run: |
+          mkdir -p build
+          go build -o build/mcp-tls-server ./cmd/server
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: Release ${{ env.VERSION }}
+          body: |
+            🚀 MCP-TLS Utility Server release ${{ env.VERSION }}
+            - Built from main
+            - Includes validated tool schema verification logic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          files: |
+            build/mcp-tls-server
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
