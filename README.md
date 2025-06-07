@@ -54,7 +54,7 @@ Optional environment variables
 | `MCPTLS_SERVER_PORT` | Port the server listens on                    | No       | `8080`  |
 | `MCPTLS_LOG_LEVEL`   | Log verbosity level (`debug`, `info`, `warn`) | No       | `info`  |
 
-### Build and Run
+### Build and Run a binary
 
 ```bash
 go build -o bin/server ./cmd/server
@@ -66,9 +66,14 @@ chmod +x ./bin/server
 
 ```bash
 docker build -t mcptls-server .
-docker run mcptls-server -p 8080:8080 \
+```
+
+```bash
+docker run --name mcptls-server \
+  -p 8080:8080 \
   -v "$(pwd)/certs:/app/certs:ro" \
-  -d
+  -d \
+  mcptls-server
 ```
 
 ### API Endpoints
