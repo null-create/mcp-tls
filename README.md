@@ -48,11 +48,11 @@ Optional environment variables
 
 | Environment Variable | Description                                   | Required | Default |
 | -------------------- | --------------------------------------------- | -------- | ------- |
-| `TLS_CERT_FILE`      | Path to the TLS certificate file              | No       | _unset_ |
-| `TLS_KEY_FILE`       | Path to the TLS private key file              | No       | _unset_ |
-| `TLS_ENABLED`        | Whether TLS will be enforced                  | No       | _unset_ |
-| `SERVER_PORT`        | Port the server listens on                    | No       | `8080`  |
-| `LOG_LEVEL`          | Log verbosity level (`debug`, `info`, `warn`) | No       | `info`  |
+| `MCPTLS_CERT_FILE`   | Path to the TLS certificate file              | No       | _unset_ |
+| `MCPTLS_KEY_FILE`    | Path to the TLS private key file              | No       | _unset_ |
+| `MCPTLS_ENABLED`     | Whether TLS will be enforced                  | No       | _unset_ |
+| `MCPTLS_SERVER_PORT` | Port the server listens on                    | No       | `8080`  |
+| `MCPTLS_LOG_LEVEL`   | Log verbosity level (`debug`, `info`, `warn`) | No       | `info`  |
 
 ### Build and Run
 
