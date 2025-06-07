@@ -33,12 +33,12 @@ type Server struct {
 	Svr       *http.Server
 }
 
-func NewServer() *Server {
+func NewServer(handlers http.Handler) *Server {
 	svrCfgs := ServerConfigs()
 	return &Server{
 		StartTime: time.Now().UTC(),
 		Svr: &http.Server{
-			Handler:      NewRouter(),
+			Handler:      handlers,
 			Addr:         "localhost:9090",
 			ReadTimeout:  svrCfgs.TimeoutRead,
 			WriteTimeout: svrCfgs.TimeoutWrite,
@@ -87,7 +87,7 @@ func (s *Server) Run() {
 				if _, err := s.Shutdown(); err != nil {
 					log.Fatal(err)
 				}
-				log.Println(fmt.Sprintf("server run time: %s", s.RunTime()))
+				log.Printf("server run time: %s", s.RunTime())
 			}
 		}()
 
@@ -95,7 +95,7 @@ func (s *Server) Run() {
 		if err := s.Svr.Shutdown(shutdownCtx); err != nil {
 			log.Fatal(err)
 		}
-		log.Println(fmt.Sprintf("server run time: %v", s.RunTime()))
+		log.Printf("server run time: %v", s.RunTime())
 		serverStopCtx()
 	}()
 
@@ -104,42 +104,5 @@ func (s *Server) Run() {
 		log.Fatal(err)
 	}
 
-	<-serverCtx.Done()
-}
-
-// start a server that can be shut down using a shutDown bool channel.
-func (s *Server) Start(shutDown chan bool) {
-	serverCtx, serverStopCtx := context.WithCancel(context.Background())
-
-	go func() {
-		// blocks until shutDown = true
-		// (set by outer test and passed after checks are completed (or failed))
-		<-shutDown
-
-		// shutdown signal with grace period of 10 seconds
-		shutdownCtx, _ := context.WithTimeout(serverCtx, 10*time.Second)
-
-		go func() {
-			<-shutdownCtx.Done()
-			if shutdownCtx.Err() == context.DeadlineExceeded {
-				log.Println("shutdown timed out. forcing exit.")
-				if _, err := s.Shutdown(); err != nil {
-					log.Fatal(err)
-				}
-				log.Println(fmt.Sprintf("server run time: %s", s.RunTime()))
-			}
-		}()
-
-		log.Println("shutting down server...")
-		if err := s.Svr.Shutdown(shutdownCtx); err != nil {
-			log.Fatal(err)
-		}
-		serverStopCtx()
-	}()
-
-	log.Println("starting server...")
-	if err := s.Svr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatal(err)
-	}
 	<-serverCtx.Done()
 }
