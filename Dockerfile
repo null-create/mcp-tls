@@ -8,12 +8,21 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o mcp-tls-server ./cmd/server
-RUN chmod +x mcp-tls-server
+RUN CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64 \
+    go build -o mcp-tls-server ./cmd/server
 
 # Stage 2: Run the binary in a minimal image
 FROM alpine:latest
 
+ENV TLS_CERT_FILE=""
+ENV TLS_KEY_FILE=""
+ENV TLS_ENABLED=""
+ENV SERVER_PORT=8080
+ENV LOG_LEVEL=info
+
+# Update image and add certificates support
 RUN apk --no-cache update && \
     apk --no-cache upgrade && \
     apk --no-cache add ca-certificates
@@ -24,5 +33,7 @@ COPY --from=builder /app/mcp-tls-server .
 COPY certs/ /root/certs/
 
 EXPOSE 8080
+
+RUN chmod +x ./mcp-tls-server
 
 ENTRYPOINT ["./mcp-tls-server"]
