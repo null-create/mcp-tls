@@ -2,35 +2,30 @@ package mcp
 
 import (
 	"encoding/json"
+	"log"
 	"time"
 )
-
-// SecurityMetadata contains information used to verify the trust and integrity of components.
-type SecurityMetadata struct {
-	Source      string `json:"source,omitempty"`        // Origin of the data (e.g., "trusted-registry", "user-provided", "api-endpoint-v2")
-	Signature   string `json:"signature,omitempty"`     // Cryptographic signature to verify authenticity/integrity (e.g., JWT, HMAC-SHA256)
-	PublicKeyID string `json:"public_key_id,omitempty"` // Identifier for the key needed to verify the signature
-	Version     string `json:"version,omitempty"`       // Version identifier for the tool description or other signed component
-	Checksum    string `json:"checksum,omitempty"`      // Hash of the component itself (e.g., hash of the ToolDescription structure)
-}
 
 // ToolOption is a function that configures a Tool.
 // It provides a flexible way to set various properties of a Tool using the functional options pattern.
 type ToolOption func(*Tool)
 
+// ToolInputSchema represents a trusted schema used for validation
 type ToolInputSchema struct {
 	Type       string                 `json:"type"`
 	Properties map[string]interface{} `json:"properties,omitempty"`
 	Required   []string               `json:"required,omitempty"`
 }
 
-// Tool represents a tool definition in MCP
+// Tool represents a tool definition used by MCP servers and clients
 type Tool struct {
 	Name             string           `json:"name"`
 	Description      string           `json:"description"`
 	Schema           json.RawMessage  `json:"schema"`
+	Arguments        json.RawMessage  `json:"arguments"`
 	Parameters       map[string]any   `json:"parameters"`
-	InputSchema      ToolInputSchema  `json:"inputSchema"`
+	InputSchema      json.RawMessage  `json:"inputSchema"`
+	OutputSchema     json.RawMessage  `json:"outputSchema"`
 	Annotations      ToolAnnotation   `json:"annotations"`
 	SecurityMetadata SecurityMetadata `json:"secMetaData"`
 }
@@ -60,13 +55,18 @@ type ToolAnnotation struct {
 // The tool will have an object-type input schema with configurable properties.
 // Options are applied in order, allowing for flexible tool configuration.
 func NewTool(name string, opts ...ToolOption) Tool {
+	inputSchema, err := json.Marshal(ToolInputSchema{
+		Type:       "object",
+		Properties: make(map[string]any),
+		Required:   nil, // Will be omitted from JSON if empty
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	tool := Tool{
-		Name: name,
-		InputSchema: ToolInputSchema{
-			Type:       "object",
-			Properties: make(map[string]any),
-			Required:   nil, // Will be omitted from JSON if empty
-		},
+		Name:        name,
+		InputSchema: inputSchema,
 		Annotations: ToolAnnotation{
 			Title:           "",
 			ReadOnlyHint:    false,
@@ -115,4 +115,12 @@ type ToolResultMetadata struct {
 	ExecutedAt      time.Time       `json:"executed_at"`             // Timestamp of tool execution completion
 	ExecutionEnv    string          `json:"execution_env,omitempty"` // Info about the environment (e.g., "sandbox-v1", "direct-api")
 	// Potential Extensions: Latency, cost, logs reference, etc.
+}
+
+// ToolValidationResult details the results of a tool validation process
+type ToolValidationResult struct {
+	Name     string `json:"name"`
+	Checksum string `json:"checksum,omitempty"`
+	Valid    bool   `json:"valid"`
+	Error    string `json:"error,omitempty"`
 }
