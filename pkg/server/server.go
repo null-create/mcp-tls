@@ -100,7 +100,7 @@ func (s *Server) Run() {
 		serverStopCtx()
 	}()
 
-	log.Println("🛠️ MCP-TLS server is running...")
+	log.Printf("🛠️ MCP-TLS server is running on at %s...", s.Svr.Addr)
 	if err := s.Svr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
