@@ -47,6 +47,7 @@ linters-settings:
       - fmt.Fprintf
       - fmt.Printf
       - fmt.Println
+      - w.Write
 
   revive:
     ignore-generated-header: true
