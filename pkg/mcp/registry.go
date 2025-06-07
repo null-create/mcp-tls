@@ -224,16 +224,36 @@ func (s *ToolManager) HandleInitialize(params InitializeParams) InitializeResult
 }
 
 // RegisterTool adds a tool to the server's registry
-func (s *ToolManager) RegisterTool(tool Tool) error {
-	return s.toolRegistry.RegisterTool(tool)
+func (t *ToolManager) RegisterTool(tool Tool) error {
+	return t.toolRegistry.RegisterTool(tool)
 }
 
 // GetTool retrieves a tool from the server's registry
-func (s *ToolManager) GetTool(name string) (Tool, error) {
-	return s.toolRegistry.GetTool(name)
+func (t *ToolManager) GetTool(name string) (Tool, error) {
+	return t.toolRegistry.GetTool(name)
 }
 
 // ListTools returns all tools registered with the server
-func (s *ToolManager) ListTools() ToolSet {
-	return s.toolRegistry.ListTools()
+func (t *ToolManager) ListTools() ToolSet {
+	return t.toolRegistry.ListTools()
+}
+
+// SchemaFingerprint generates a hash for a given tools schema
+func (t *ToolManager) SchemaFingerprint(tool *Tool) error {
+	fingerPrint, err := generateSchemaFingerprint(tool.Schema)
+	if err != nil {
+		return err
+	}
+	tool.SecurityMetadata.Signature = fingerPrint
+	return nil
+}
+
+// ToolChecksum creates a checksum of the entire tool definition using SHA-256
+func (t *ToolManager) ToolChecksum(tool *Tool) error {
+	checkSum, err := generateToolChecksum(*tool)
+	if err != nil {
+		return err
+	}
+	tool.SecurityMetadata.Checksum = checkSum
+	return nil
 }
