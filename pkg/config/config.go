@@ -6,15 +6,13 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/null-create/mcp-tls/pkg/db"
 	"github.com/null-create/mcp-tls/pkg/tls"
 )
 
 type Config struct {
-	DbCfgs     db.DbConfig
-	TLSConfig  tls.TLSConfig
 	ServerPort string // (OPTIONAL) server port. defaults to 8080
 	TargetURL  string // target for proxy server to pass/receive from
+	TLSConfig  tls.TLSConfig
 }
 
 // LoadConfigs() loads the program configuration from environment variables.
