@@ -20,6 +20,14 @@ type RPCMessage struct {
 	Timestamp time.Time              `bson:"timestamp" json:"timestamp"`
 }
 
+// DbConfig represents our mongo DB configurations
+type DbConfig struct {
+	DbLessMode       bool   // whether we're running in dbless-mode
+	DbURI            string // mongo db uri (i.e. mongodb://localhost:27017)
+	DbName           string // db name
+	DbCollectionName string // db collections name
+}
+
 // MongoStore is a wrapper for MongoDB client and collection
 type MongoStore struct {
 	client     *mongo.Client

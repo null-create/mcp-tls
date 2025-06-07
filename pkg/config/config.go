@@ -6,16 +6,15 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/null-create/mcp-tls/pkg/db"
 	"github.com/null-create/mcp-tls/pkg/tls"
 )
 
 type Config struct {
-	TLSConfig        tls.TLSConfig
-	ServerPort       string // (OPTIONAL) server port. defaults to 8080
-	TargetURL        string // target for proxy server to pass/receive from
-	DbURI            string // mongo db uri (i.e. mongodb://localhost:27017)
-	DbName           string // db name
-	DbCollectionName string // db collections name
+	DbCfgs     db.DbConfig
+	TLSConfig  tls.TLSConfig
+	ServerPort string // (OPTIONAL) server port. defaults to 8080
+	TargetURL  string // target for proxy server to pass/receive from
 }
 
 // LoadConfigs() loads the program configuration from environment variables.
