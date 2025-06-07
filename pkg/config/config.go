@@ -13,6 +13,7 @@ type Config struct {
 	TLSCertFile     string
 	TLSClientCAFile string
 	ServerPort      string
+	TargetURL       string // target for proxy server to pass/receive from
 }
 
 // LoadConfig() loads the program configuration from environment variables.
@@ -22,6 +23,11 @@ func LoadConfig() Config {
 	if err != nil {
 		log.Fatal(err)
 	}
+	targetURL := os.Getenv("MCPTLS_TARGET_URL")
+	if targetURL == "" {
+		log.Fatal("❌ MCPTLS_TARGET_URL must be set")
+	}
+
 	tlsKeyFile := os.Getenv("MCPTLS_KEY_FILE")
 	if tlsKeyFile == "" {
 		log.Print("⚠️ WARNING MCPTLS_KEY_FILE env var not set. Using defaults.")
@@ -50,5 +56,6 @@ func LoadConfig() Config {
 		TLSCertFile:     tlsCertFile,
 		TLSClientCAFile: tlsClientCAFile,
 		ServerPort:      serverPort,
+		TargetURL:       targetURL,
 	}
 }
