@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -22,11 +23,13 @@ func LoadConfig() Config {
 	}
 	tlsKeyFile := os.Getenv("MCPTLS_KEY_FILE")
 	if tlsKeyFile == "" {
-		log.Print("⚠️ WARNING MCPTLS_KEY_FILE env var not set")
+		log.Print("⚠️ WARNING MCPTLS_KEY_FILE env var not set. Using defaults.")
+		tlsKeyFile = filepath.Join("certs", "server.key")
 	}
 	tlsCertFile := os.Getenv("MCPTLS_CERT_FILE")
 	if tlsCertFile == "" {
-		log.Print("⚠️ WARNING MCPTLS_CERT_FILE env var not set")
+		log.Print("⚠️ WARNING MCPTLS_CERT_FILE env var not set. Using defaults.")
+		tlsCertFile = filepath.Join("certs", "server.crt")
 	}
 
 	// check for custom server port
