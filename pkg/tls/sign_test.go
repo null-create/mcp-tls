@@ -1,4 +1,4 @@
-package validate
+package tls
 
 import (
 	"crypto/rand"

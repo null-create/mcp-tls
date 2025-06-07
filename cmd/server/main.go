@@ -10,14 +10,14 @@ import (
 func main() {
 	router := server.NewRouter()
 
-	cfgs := config.LoadConfig()
+	cfgs := config.LoadConfigs()
 
-	if cfgs.TLSEnabled {
+	if cfgs.TLSConfig.TLSEnabled {
 		err := server.StartSecureServer(server.TLSOptions{
-			CertFile:          cfgs.TLSCertFile,
-			KeyFile:           cfgs.TLSKeyFile,
-			ClientCAFile:      cfgs.TLSClientCAFile, // Optional
-			RequireClientCert: false,                // Set to true if mTLS is needed
+			CertFile:          cfgs.TLSConfig.TLSCertFile,
+			KeyFile:           cfgs.TLSConfig.TLSKeyFile,
+			ClientCAFile:      cfgs.TLSConfig.TLSClientCAFile, // Optional
+			RequireClientCert: false,                          // Set to true if mTLS is needed
 			Addr:              ":8443",
 		}, router)
 

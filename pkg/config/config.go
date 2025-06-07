@@ -5,29 +5,32 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/null-create/mcp-tls/pkg/tls"
 )
 
 type Config struct {
-	TLSEnabled      bool
-	TLSKeyFile      string
-	TLSCertFile     string
-	TLSClientCAFile string
-	ServerPort      string
-	TargetURL       string // target for proxy server to pass/receive from
+	TLSConfig        tls.TLSConfig
+	ServerPort       string // (OPTIONAL) server port. defaults to 8080
+	TargetURL        string // target for proxy server to pass/receive from
+	DbURI            string // mongo db uri (i.e. mongodb://localhost:27017)
+	DbName           string // db name
+	DbCollectionName string // db collections name
 }
 
-// LoadConfig() loads the program configuration from environment variables.
-func LoadConfig() Config {
-	// check tls configs
-	tlsEnabled, err := strconv.ParseBool(os.Getenv("MCPTLS_ENABLED"))
-	if err != nil {
-		log.Fatal(err)
-	}
+// LoadConfigs() loads the program configuration from environment variables.
+func LoadConfigs() Config {
+	// proxy target url
 	targetURL := os.Getenv("MCPTLS_TARGET_URL")
 	if targetURL == "" {
 		log.Fatal("❌ MCPTLS_TARGET_URL must be set")
 	}
 
+	// check tls configs
+	tlsEnabled, err := strconv.ParseBool(os.Getenv("MCPTLS_ENABLED"))
+	if err != nil {
+		log.Fatal(err)
+	}
 	tlsKeyFile := os.Getenv("MCPTLS_KEY_FILE")
 	if tlsKeyFile == "" {
 		log.Print("⚠️ WARNING MCPTLS_KEY_FILE env var not set. Using defaults.")
@@ -51,11 +54,13 @@ func LoadConfig() Config {
 	}
 
 	return Config{
-		TLSEnabled:      tlsEnabled,
-		TLSKeyFile:      tlsKeyFile,
-		TLSCertFile:     tlsCertFile,
-		TLSClientCAFile: tlsClientCAFile,
-		ServerPort:      serverPort,
-		TargetURL:       targetURL,
+		TLSConfig: tls.TLSConfig{
+			TLSEnabled:      tlsEnabled,
+			TLSKeyFile:      tlsKeyFile,
+			TLSCertFile:     tlsCertFile,
+			TLSClientCAFile: tlsClientCAFile,
+		},
+		ServerPort: serverPort,
+		TargetURL:  targetURL,
 	}
 }
