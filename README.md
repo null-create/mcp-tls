@@ -66,7 +66,9 @@ chmod +x ./bin/server
 
 ```bash
 docker build -t mcptls-server .
-docker run -p 8080:8080 -d mcptls-server
+docker run mcptls-server -p 8080:8080 \
+  -v "$(pwd)/certs:/app/certs:ro" \
+  -d
 ```
 
 ### API Endpoints
