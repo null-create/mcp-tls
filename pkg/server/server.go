@@ -78,6 +78,7 @@ func (s *Server) Run() {
 		<-sig
 
 		// shutdown signal with grace period of 10 seconds
+		// nolint:golint
 		shutdownCtx, _ := context.WithTimeout(serverCtx, 10*time.Second)
 
 		go func() {
