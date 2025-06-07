@@ -21,7 +21,7 @@ func main() {
 		}, router)
 
 		if err != nil {
-			log.Fatalf("TLS server failed: %v", err)
+			log.Fatalf("❌ TLS server failed: %v", err)
 		}
 	} else {
 		server := server.NewServer(router)
