@@ -1,6 +1,8 @@
 # MCP-TLS Tool Validation Server
 
-A lightweight utility server that validates tool definitions for integrity and schema correctness based on the [Model Context Protocol - Tool Layer Security (MCP-TLS)](https://github.com/your-org/your-spec). This server is intended to be used as part of a broader MCP-compatible toolchain but can run independently for testing or CI verification of tool definitions.
+### ⚠️ This project is in early stage development ⚠️
+
+A lightweight utility server that validates tool definitions for integrity and schema correctness. This server is intended to be used as part of a broader MCP-compatible toolchain but can run independently for testing or CI verification of tool definitions.
 
 ## 🔧 Features
 
