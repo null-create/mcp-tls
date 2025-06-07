@@ -22,9 +22,10 @@ func NewRouter() http.Handler {
 	})
 
 	// Validation routes
+	h := NewHandler()
 	r.Route("/validate", func(r chi.Router) {
-		r.Post("/tool", ValidateToolHandler)
-		r.Post("/tools", ValidateToolsHandler)
+		r.Post("/tool", h.ValidateToolHandler)
+		r.Post("/tools", h.ValidateToolsHandler)
 	})
 
 	return r
