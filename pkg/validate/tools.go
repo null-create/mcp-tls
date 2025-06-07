@@ -11,20 +11,18 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-// --- Tool Schema Validation ---
-
 // FindToolDescription retrieves the trusted tool description by name.
 // In a real system, this might involve looking up in a secure registry
 // and potentially verifying signatures/sources stored in SecurityMetadata.
-func FindToolDescription(name string, availableTools []mcp.ToolDescription) (*mcp.ToolDescription, error) {
+func FindToolDescription(toolName string, availableTools []mcp.ToolDescription) (*mcp.ToolDescription, error) {
 	for _, tool := range availableTools {
-		if tool.Name == name {
+		if tool.Name == toolName {
 			// TODO: Add verification of tool description source/integrity here
 			// based on tool.SecurityMetadata if available.
 			return &tool, nil // Return pointer to avoid copying large schemas
 		}
 	}
-	return nil, fmt.Errorf("tool '%s' not found or not permitted", name)
+	return nil, fmt.Errorf("tool '%s' not found or not permitted", toolName)
 }
 
 // ValidateToolSchema is called by the orchestrator when an LLM requests a tool call.
@@ -57,12 +55,14 @@ func ValidateToolSchema(
 			for _, desc := range result.Errors() {
 				validationErrors = append(validationErrors, fmt.Sprintf("- %s", desc))
 			}
-			errorMsg := fmt.Sprintf("Input validation failed for tool '%s':\n%s",
-				toolDesc.Name, strings.Join(validationErrors, "\n"))
+			errorMsg := fmt.Sprintf(
+				"Input validation failed for tool '%s':\n%s",
+				toolDesc.Name, strings.Join(validationErrors, "\n"),
+			)
 			fmt.Println("SECURITY ALERT:", errorMsg)
 			return mcp.StatusFailed, errors.New(errorMsg)
 		}
-		fmt.Printf("Input arguments for tool '%s' validated successfully.\n", toolDesc.Name)
+		fmt.Printf("Input arguments for tool '%s' validated successfully", toolDesc.Name)
 	} else {
 		return mcp.StatusFailed, fmt.Errorf("no InputSchema defined for tool '%s'", toolDesc.Name)
 	}
@@ -109,4 +109,14 @@ func ValidateToolCallOutput(
 		fmt.Printf("Output content for tool '%s' validated successfully.\n", toolDesc.Name)
 	}
 	return mcp.StatusSucceeded, nil
+}
+
+// ValidateToolDescription analyzes the tools descriptive text for hidden characters
+// and potentially injected prompts
+func ValidateToolDescription(tool mcp.Tool) error {
+	detections := detectHiddenUnicode(tool.Description)
+	if len(detections) == 0 {
+		return nil
+	}
+	return fmt.Errorf("ALERT: %d hidden characters detected in tool description text", len(detections))
 }
