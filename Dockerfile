@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o mcp-tls-server .
+RUN go build -o mcp-tls-server ./cmd/server
 
 # Stage 2: Run the binary in a minimal image
 FROM alpine:latest
