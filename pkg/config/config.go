@@ -8,10 +8,11 @@ import (
 )
 
 type Config struct {
-	TLSEnabled  bool
-	TLSKeyFile  string
-	TLSCertFile string
-	ServerPort  string
+	TLSEnabled      bool
+	TLSKeyFile      string
+	TLSCertFile     string
+	TLSClientCAFile string
+	ServerPort      string
 }
 
 // LoadConfig() loads the program configuration from environment variables.
@@ -31,6 +32,11 @@ func LoadConfig() Config {
 		log.Print("⚠️ WARNING MCPTLS_CERT_FILE env var not set. Using defaults.")
 		tlsCertFile = filepath.Join("certs", "server.crt")
 	}
+	tlsClientCAFile := os.Getenv("MCPTLS_CLIENT_CA_FILE")
+	if tlsClientCAFile == "" {
+		log.Print("⚠️ WARNING MCPTLS_CLIENT_CA_FILE env var not set. Using defaults.")
+		tlsClientCAFile = filepath.Join("certs", "ca.crt")
+	}
 
 	// check for custom server port
 	serverPort := os.Getenv("MCPTLS_SERVER_PORT")
@@ -39,9 +45,10 @@ func LoadConfig() Config {
 	}
 
 	return Config{
-		TLSEnabled:  tlsEnabled,
-		TLSKeyFile:  tlsKeyFile,
-		TLSCertFile: tlsCertFile,
-		ServerPort:  serverPort,
+		TLSEnabled:      tlsEnabled,
+		TLSKeyFile:      tlsKeyFile,
+		TLSCertFile:     tlsCertFile,
+		TLSClientCAFile: tlsClientCAFile,
+		ServerPort:      serverPort,
 	}
 }
