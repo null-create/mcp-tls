@@ -20,6 +20,7 @@ RUN apk --no-cache update && \
 WORKDIR /root/
 
 COPY --from=builder /app/mcp-tls-server .
+COPY certs/ /root/certs/
 
 EXPOSE 8080
 
