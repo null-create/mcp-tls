@@ -93,11 +93,11 @@ curl -X POST https://localhost:8443/api/tools/validate \
 **Example with TLS enabled:**
 
 ```bash
-curl --cacert certs/ca.crt \
+curl -X POST https://localhost:8443/api/tools/validate \
+     -H "Content-Type: application/json" \
+     --cacert certs/ca.crt \
      --cert certs/client.crt \
      --key certs/client.key \
-     -X POST https://localhost:8443/api/tools/validate \
-     -H "Content-Type: application/json" \
      -d @tool.json
 ```
 
