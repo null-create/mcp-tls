@@ -1,26 +1,34 @@
 package server
 
 import (
-	"bytes"
+	"bufio"
+	"context"
 	"encoding/json"
 	"io"
 	"log"
+	"net"
 	"net/http"
 
-	"maps"
-
+	"github.com/null-create/mcp-tls/pkg/codec"
 	"github.com/null-create/mcp-tls/pkg/mcp"
 	"github.com/null-create/mcp-tls/pkg/util"
+	"github.com/null-create/mcp-tls/pkg/validate"
+)
+
+const (
+	proxyListenAddr  = ":9000"
+	targetServerAddr = "localhost:9001"
 )
 
 type Handlers struct {
-	TargetURL   string // url to pass requests or responses to
+	ClientURL   string
+	ServerURL   string
 	toolManager *mcp.ToolManager
 }
 
 func NewHandler() Handlers {
 	return Handlers{
-		TargetURL:   "",
+		ClientURL:   "",
 		toolManager: mcp.NewToolManager("mcp-tls-tool-manager", "1.0.0", true),
 	}
 }
@@ -48,7 +56,18 @@ func (h *Handlers) ValidateToolHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: add validation logic
+	// validate tool description
+	err = validate.ValidateToolDescription(tool.Description)
+	if err != nil {
+		util.WriteJSON(w, mcp.ToolValidationResult{
+			Name:  tool.Name,
+			Valid: false,
+			Error: err.Error(),
+		})
+		return
+	}
+
+	// validate tool schema
 
 	util.WriteJSON(w, mcp.ToolValidationResult{
 		Name:     tool.Name,
@@ -88,47 +107,99 @@ func (h *Handlers) ValidateToolsHandler(w http.ResponseWriter, r *http.Request) 
 	util.WriteJSON(w, results)
 }
 
-// ProxyHandler handles both directions of JSON-RPC over HTTP.
-func (h *Handlers) ProxyHandler(w http.ResponseWriter, r *http.Request) {
-	h.proxy(w, r, h.TargetURL)
+// Intercepts client-to-server and validates tool call requests
+func (h *Handlers) validateAndForward(data []byte) ([]byte, error) {
+	var req codec.JSONRPCRequest
+	if err := json.Unmarshal(data, &req); err != nil {
+		log.Println("Invalid JSON-RPC:", err)
+		return nil, err
+	}
+
+	if req.Method == "tool.call" {
+		var tool mcp.Tool
+		if err := json.Unmarshal(req.Params, &tool); err != nil {
+			log.Printf("Failed to unmarshal request params to tool description object: %v", err)
+			return nil, err
+		}
+
+		status, err := validate.ValidateToolInputSchema(context.Background(), &tool, nil)
+		if err != nil {
+			log.Printf("Failed to validate tool schema: %v", err)
+			return nil, err
+		}
+		if status == mcp.StatusSucceeded {
+			// valid schema. validate description before passing onward
+			return json.Marshal(req)
+		}
+	}
+	return json.Marshal(codec.JSONRPCError{
+		Code: codec.INVALID_REQUEST,
+	})
 }
 
-func (h *Handlers) proxy(w http.ResponseWriter, r *http.Request, targetURL string) {
-	bodyBytes, err := io.ReadAll(r.Body)
+func (h *Handlers) handleConnection(clientConn net.Conn) {
+	defer clientConn.Close()
+
+	serverConn, err := net.Dial("tcp", targetServerAddr)
 	if err != nil {
-		http.Error(w, "Unable to read request", http.StatusBadRequest)
-		log.Println("Error reading body:", err)
+		log.Printf("Failed to connect to MCP server: %v", err)
 		return
 	}
-	r.Body.Close()
+	defer serverConn.Close()
 
-	// Forward request
-	req, err := http.NewRequest(r.Method, targetURL, bytes.NewReader(bodyBytes))
-	if err != nil {
-		http.Error(w, "Failed to create request", http.StatusInternalServerError)
-		log.Println("Error creating request:", err)
-		return
+	go h.proxyStream(clientConn, serverConn, h.validateAndForward)
+	h.proxyStream(serverConn, clientConn, h.passthrough)
+}
+
+// Simple passthrough for server-to-client direction
+func (h *Handlers) passthrough(data []byte) ([]byte, error) {
+	return data, nil
+}
+
+type toolError string
+
+func (e toolError) Error() string { return string(e) }
+
+func ErrInvalidTool(msg string) error { return toolError("Invalid tool call: " + msg) }
+
+// Handles framed JSON messages over TCP (e.g., newline-delimited)
+func (h *Handlers) proxyStream(src, dst net.Conn, transform func([]byte) ([]byte, error)) {
+	reader := bufio.NewReader(src)
+	writer := bufio.NewWriter(dst)
+
+	for {
+		line, err := reader.ReadBytes('\n') // framing logic (newline-delimited)
+		if err != nil {
+			if err != io.EOF {
+				log.Printf("Stream read error: %v", err)
+			}
+			return
+		}
+
+		processed, err := transform(line)
+		if err != nil {
+			log.Printf("Processing error: %v", err)
+			return
+		}
+
+		writer.Write(processed)
+		writer.Flush()
 	}
-	req.Header = r.Header.Clone()
+}
 
-	resp, err := http.DefaultClient.Do(req)
+func (h *Handlers) proxy() {
+	listener, err := net.Listen("tcp", proxyListenAddr)
 	if err != nil {
-		http.Error(w, "MCP server unreachable", http.StatusBadGateway)
-		log.Println("Error contacting MCP server:", err)
-		return
+		log.Fatalf("Proxy listen failed: %v", err)
 	}
-	defer resp.Body.Close()
+	log.Printf("MCP proxy listening on %s → %s", proxyListenAddr, targetServerAddr)
 
-	// Read response
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		http.Error(w, "Failed to read server response", http.StatusInternalServerError)
-		log.Println("Error reading server response:", err)
-		return
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Printf("Connection accept failed: %v", err)
+			continue
+		}
+		go h.handleConnection(conn)
 	}
-
-	// Copy headers and status code
-	maps.Copy(w.Header(), resp.Header)
-	w.WriteHeader(resp.StatusCode)
-	w.Write(respBody)
 }
