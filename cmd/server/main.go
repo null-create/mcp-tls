@@ -9,7 +9,6 @@ import (
 
 func main() {
 	router := server.NewRouter()
-
 	cfgs := config.LoadConfigs()
 
 	if cfgs.TLSConfig.TLSEnabled {
@@ -20,7 +19,6 @@ func main() {
 			RequireClientCert: false,                          // Set to true if mTLS is needed
 			Addr:              ":8443",
 		}, router)
-
 		if err != nil {
 			log.Fatalf("❌ TLS server failed: %v", err)
 		}
