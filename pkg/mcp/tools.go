@@ -358,6 +358,11 @@ func (t *ToolManager) ListTools() ToolSet {
 	return t.toolRegistry.ListTools()
 }
 
+// GetTools returns all tools available from the internal tool registry
+func (t *ToolManager) GetTools() []Tool {
+	return t.toolRegistry.ListTools().Tools
+}
+
 // SchemaFingerprint generates a hash for a given tools schema
 func (t *ToolManager) SchemaFingerprint(tool *Tool) error {
 	fingerPrint, err := generateSchemaFingerprint(tool.InputSchema)
@@ -375,5 +380,28 @@ func (t *ToolManager) ToolChecksum(tool *Tool) error {
 		return err
 	}
 	tool.SecurityMetadata.Checksum = checkSum
+	return nil
+}
+
+// SecureTool adds security metadata to a tool
+func SecureTool(tool *Tool) error {
+	// Generate fingerprint from parameters schema
+	fingerprint, err := generateSchemaFingerprint(tool.InputSchema)
+	if err != nil {
+		return err
+	}
+
+	// Generate checksum from parameters schema
+	checksum, err := generateToolChecksum(*tool)
+	if err != nil {
+		return err
+	}
+
+	// Set security metadata
+	tool.SecurityMetadata = SecurityMetadata{
+		Signature: fingerprint,
+		Checksum:  checksum,
+	}
+
 	return nil
 }
