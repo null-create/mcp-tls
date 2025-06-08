@@ -32,11 +32,30 @@ func FindTool(toolName string, toolManager *mcp.ToolManager) (*mcp.Tool, error) 
 	return &tool, nil
 }
 
-// ValidateToolInputSchema validates the input arguments against the tool's input schema.
-func ValidateToolInputSchema(
-	tool *mcp.Tool,
+// ValidateToolCall validates both the tool lookup and input arguments in one call.
+// This is a convenience function that combines tool lookup and input validation.
+func ValidateToolCall(
+	toolName string,
 	inputArguments []byte,
-) (executionStatus ValidationStatus, execErr error) {
+	toolManager *mcp.ToolManager,
+) (*mcp.Tool, ValidationStatus, error) {
+	// Find the tool
+	foundTool, err := FindTool(toolName, toolManager)
+	if err != nil {
+		return nil, StatusError, fmt.Errorf("tool lookup failed: %w", err)
+	}
+
+	// Validate the input
+	status, err := ValidateToolInputSchema(foundTool, inputArguments)
+	if err != nil {
+		return foundTool, status, err
+	}
+
+	return foundTool, status, nil
+}
+
+// ValidateToolInputSchema validates the input arguments against the tool's input schema.
+func ValidateToolInputSchema(tool *mcp.Tool, inputArguments []byte) (ValidationStatus, error) {
 	// Only validate if schema is provided
 	if len(tool.InputSchema) > 0 {
 		schemaLoader := gojsonschema.NewBytesLoader(tool.InputSchema)
@@ -71,33 +90,8 @@ func ValidateToolInputSchema(
 	return StatusSucceeded, nil
 }
 
-// ValidateToolCall validates both the tool lookup and input arguments in one call.
-// This is a convenience function that combines tool lookup and input validation.
-func ValidateToolCall(
-	toolName string,
-	inputArguments []byte,
-	toolManager *mcp.ToolManager,
-) (tool *mcp.Tool, executionStatus ValidationStatus, execErr error) {
-	// Find the tool
-	foundTool, err := FindTool(toolName, toolManager)
-	if err != nil {
-		return nil, StatusError, fmt.Errorf("tool lookup failed: %w", err)
-	}
-
-	// Validate the input
-	status, err := ValidateToolInputSchema(foundTool, inputArguments)
-	if err != nil {
-		return foundTool, status, err
-	}
-
-	return foundTool, status, nil
-}
-
 // ValidateToolOutput validates the tool's output against its output schema.
-func ValidateToolOutput(
-	rawResult string,
-	tool *mcp.Tool,
-) (ValidationStatus, error) {
+func ValidateToolOutput(rawResult string, tool *mcp.Tool) (ValidationStatus, error) {
 	if len(tool.OutputSchema) > 0 {
 		outputSchemaLoader := gojsonschema.NewBytesLoader(tool.OutputSchema)
 		outputDocumentLoader := gojsonschema.NewStringLoader(rawResult)
