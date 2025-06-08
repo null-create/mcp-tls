@@ -16,13 +16,13 @@ func NewRouter() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	// Load handlers
+	h := NewHandler()
+
 	// Health check
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("ok"))
-	})
+	r.Get("/health", h.HealthCheckHandler)
 
 	// Validation routes
-	h := NewHandler()
 	r.Route("/validate", func(r chi.Router) {
 		r.Post("/tool", h.ValidateToolHandler)
 		r.Post("/tools", h.ValidateToolsHandler)
