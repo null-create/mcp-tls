@@ -136,7 +136,6 @@ func ValidateToolDescription(toolDescription string) error {
 // ValidateToolSecurity performs comprehensive security validation on a tool.
 // This includes checksum validation, schema fingerprint validation, and description validation.
 func ValidateToolSecurity(tool *mcp.Tool, toolManager *mcp.ToolManager) error {
-	// Validate tool description for hidden characters
 	if err := ValidateToolDescription(tool.Description); err != nil {
 		return fmt.Errorf("tool description validation failed: %w", err)
 	}
