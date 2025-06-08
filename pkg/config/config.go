@@ -11,16 +11,21 @@ import (
 
 type Config struct {
 	ServerPort string // (OPTIONAL) server port. defaults to 8080
-	TargetURL  string // target for proxy server to pass/receive from
+	ClientURL  string // URL to pass responses from the server to
+	ServerURL  string // URL to pass requests from the client to
 	TLSConfig  tls.TLSConfig
 }
 
 // LoadConfigs() loads the program configuration from environment variables.
 func LoadConfigs() Config {
 	// proxy target url
-	targetURL := os.Getenv("MCPTLS_TARGET_URL")
-	if targetURL == "" {
-		log.Fatal("❌ MCPTLS_TARGET_URL must be set")
+	clientURL := os.Getenv("MCPTLS_CLIENT_URL")
+	if clientURL == "" {
+		log.Fatal("❌ MCPTLS_CLIENT_URL must be set")
+	}
+	serverURL := os.Getenv("MCPTLS_SERVER_URL")
+	if serverURL == "" {
+		log.Fatal("❌ MCPTLS_SERVER_URL must be set")
 	}
 
 	// check tls configs
@@ -47,6 +52,7 @@ func LoadConfigs() Config {
 	// check for custom server port
 	serverPort := os.Getenv("MCPTLS_SERVER_PORT")
 	if serverPort == "" {
+		log.Print("⚠️ WARNING MCPTLS_SERVER_PORT env var not set. Using defaults port 8080")
 		serverPort = "8080"
 	}
 
@@ -58,6 +64,7 @@ func LoadConfigs() Config {
 			TLSClientCAFile: tlsClientCAFile,
 		},
 		ServerPort: serverPort,
-		TargetURL:  targetURL,
+		ClientURL:  clientURL,
+		ServerURL:  serverURL,
 	}
 }
