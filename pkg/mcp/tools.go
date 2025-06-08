@@ -21,7 +21,6 @@ type ToolInputSchema struct {
 type Tool struct {
 	Name             string           `json:"name"`
 	Description      string           `json:"description"`
-	Schema           json.RawMessage  `json:"schema"`
 	Arguments        json.RawMessage  `json:"arguments"`
 	Parameters       map[string]any   `json:"parameters"`
 	InputSchema      json.RawMessage  `json:"inputSchema"`

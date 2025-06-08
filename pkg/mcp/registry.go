@@ -43,7 +43,7 @@ func (tr *ToolRegistry) RegisterTool(tool Tool) error {
 		}
 
 		if tool.SecurityMetadata.Signature == "" {
-			fingerprint, err := generateSchemaFingerprint(tool.Schema)
+			fingerprint, err := generateSchemaFingerprint(tool.InputSchema)
 			if err != nil {
 				return err
 			}
@@ -72,7 +72,7 @@ func (tr *ToolRegistry) GetTool(name string) (Tool, error) {
 			return Tool{}, errors.New("tool checksum validation failed")
 		}
 
-		expectedSignature, err := generateSchemaFingerprint(tool.Schema)
+		expectedSignature, err := generateSchemaFingerprint(tool.InputSchema)
 		if err != nil {
 			return Tool{}, fmt.Errorf("failed to generate expected signature: %v", err)
 		}
@@ -141,7 +141,7 @@ func generateToolChecksum(tool Tool) (string, error) {
 	toolCopy := Tool{
 		Name:        tool.Name,
 		Description: tool.Description,
-		Schema:      tool.Schema,
+		InputSchema: tool.InputSchema,
 	}
 
 	data, err := json.Marshal(toolCopy)
@@ -240,7 +240,7 @@ func (t *ToolManager) ListTools() ToolSet {
 
 // SchemaFingerprint generates a hash for a given tools schema
 func (t *ToolManager) SchemaFingerprint(tool *Tool) error {
-	fingerPrint, err := generateSchemaFingerprint(tool.Schema)
+	fingerPrint, err := generateSchemaFingerprint(tool.InputSchema)
 	if err != nil {
 		return err
 	}
