@@ -2,7 +2,6 @@ package server
 
 import (
 	"bufio"
-	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -28,7 +27,6 @@ type Handlers struct {
 
 func NewHandler() Handlers {
 	return Handlers{
-		ClientURL:   "",
 		toolManager: mcp.NewToolManager("mcp-tls-tool-manager", "1.0.0", true),
 	}
 }
@@ -40,7 +38,7 @@ func (h *Handlers) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) ValidateToolHandler(w http.ResponseWriter, r *http.Request) {
-	var tool mcp.Tool // or ToolDescription? This is what's used in the validate module
+	var tool mcp.Tool
 	if err := json.NewDecoder(r.Body).Decode(&tool); err != nil {
 		util.WriteError(w, http.StatusBadRequest, "Invalid tool JSON: "+err.Error())
 		return
@@ -68,6 +66,23 @@ func (h *Handlers) ValidateToolHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate tool schema
+	status, err := validate.ValidateToolInputSchema(&tool, tool.Arguments)
+	if err != nil {
+		util.WriteJSON(w, mcp.ToolValidationResult{
+			Name:  tool.Name,
+			Valid: false,
+			Error: err.Error(),
+		})
+		return
+	}
+	if status == validate.StatusFailed {
+		util.WriteJSON(w, mcp.ToolValidationResult{
+			Name:  tool.Name,
+			Valid: false,
+			Error: "tool validation failed",
+		})
+		return
+	}
 
 	util.WriteJSON(w, mcp.ToolValidationResult{
 		Name:     tool.Name,
@@ -122,12 +137,12 @@ func (h *Handlers) validateAndForward(data []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		status, err := validate.ValidateToolInputSchema(context.Background(), &tool, nil)
+		status, err := validate.ValidateToolInputSchema(&tool, tool.Arguments)
 		if err != nil {
 			log.Printf("Failed to validate tool schema: %v", err)
 			return nil, err
 		}
-		if status == mcp.StatusSucceeded {
+		if status == validate.StatusSucceeded {
 			// valid schema. validate description before passing onward
 			return json.Marshal(req)
 		}

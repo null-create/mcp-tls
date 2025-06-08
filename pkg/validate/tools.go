@@ -1,7 +1,6 @@
 package validate
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -12,6 +11,14 @@ import (
 	"github.com/null-create/mcp-tls/pkg/mcp"
 
 	"github.com/xeipuuv/gojsonschema"
+)
+
+type ValidationStatus string
+
+const (
+	StatusSucceeded ValidationStatus = "succeeded"
+	StatusFailed    ValidationStatus = "failed"
+	StatusError     ValidationStatus = "error"
 )
 
 // FindTool retrieves the trusted tool by name from the tool registry.
@@ -27,22 +34,21 @@ func FindTool(toolName string, toolManager *mcp.ToolManager) (*mcp.Tool, error) 
 
 // ValidateToolInputSchema validates the input arguments against the tool's input schema.
 func ValidateToolInputSchema(
-	ctx context.Context,
 	tool *mcp.Tool,
 	inputArguments []byte,
-) (executionStatus mcp.ExecutionStatus, execErr error) {
+) (executionStatus ValidationStatus, execErr error) {
 	// Only validate if schema is provided
 	if len(tool.InputSchema) > 0 {
 		schemaLoader := gojsonschema.NewBytesLoader(tool.InputSchema)
 		documentLoader := gojsonschema.NewBytesLoader(inputArguments)
 		schema, err := gojsonschema.NewSchema(schemaLoader)
 		if err != nil {
-			return mcp.StatusError, fmt.Errorf("internal schema error for tool '%s'", tool.Name)
+			return StatusError, fmt.Errorf("internal schema error for tool '%s'", tool.Name)
 		}
 
 		result, err := schema.Validate(documentLoader)
 		if err != nil {
-			return mcp.StatusError, fmt.Errorf("internal validation error for tool '%s'", tool.Name)
+			return StatusError, fmt.Errorf("internal validation error for tool '%s'", tool.Name)
 		}
 
 		if !result.Valid() {
@@ -55,32 +61,31 @@ func ValidateToolInputSchema(
 				tool.Name, strings.Join(validationErrors, "\n"),
 			)
 			fmt.Println("SECURITY ALERT:", errorMsg)
-			return mcp.StatusFailed, errors.New(errorMsg)
+			return StatusFailed, errors.New(errorMsg)
 		}
 		fmt.Printf("Input arguments for tool '%s' validated successfully", tool.Name)
 	} else {
-		return mcp.StatusFailed, fmt.Errorf("no InputSchema defined for tool '%s'", tool.Name)
+		return StatusFailed, fmt.Errorf("no InputSchema defined for tool '%s'", tool.Name)
 	}
 
-	return mcp.StatusSucceeded, nil
+	return StatusSucceeded, nil
 }
 
 // ValidateToolCall validates both the tool lookup and input arguments in one call.
 // This is a convenience function that combines tool lookup and input validation.
 func ValidateToolCall(
-	ctx context.Context,
 	toolName string,
 	inputArguments []byte,
 	toolManager *mcp.ToolManager,
-) (tool *mcp.Tool, executionStatus mcp.ExecutionStatus, execErr error) {
+) (tool *mcp.Tool, executionStatus ValidationStatus, execErr error) {
 	// Find the tool
 	foundTool, err := FindTool(toolName, toolManager)
 	if err != nil {
-		return nil, mcp.StatusError, fmt.Errorf("tool lookup failed: %w", err)
+		return nil, StatusError, fmt.Errorf("tool lookup failed: %w", err)
 	}
 
 	// Validate the input
-	status, err := ValidateToolInputSchema(ctx, foundTool, inputArguments)
+	status, err := ValidateToolInputSchema(foundTool, inputArguments)
 	if err != nil {
 		return foundTool, status, err
 	}
@@ -92,7 +97,7 @@ func ValidateToolCall(
 func ValidateToolOutput(
 	rawResult string,
 	tool *mcp.Tool,
-) (mcp.ExecutionStatus, error) {
+) (ValidationStatus, error) {
 	if len(tool.OutputSchema) > 0 {
 		outputSchemaLoader := gojsonschema.NewBytesLoader(tool.OutputSchema)
 		outputDocumentLoader := gojsonschema.NewStringLoader(rawResult)
@@ -100,13 +105,13 @@ func ValidateToolOutput(
 		outputSchema, err := gojsonschema.NewSchema(outputSchemaLoader)
 		if err != nil {
 			fmt.Printf("ERROR: Invalid OutputSchema for tool '%s': %v\n", tool.Name, err)
-			return mcp.StatusError, fmt.Errorf("internal output schema error for tool '%s'", tool.Name)
+			return StatusError, fmt.Errorf("internal output schema error for tool '%s'", tool.Name)
 		}
 
 		outputResult, err := outputSchema.Validate(outputDocumentLoader)
 		if err != nil {
 			fmt.Printf("ERROR: Output validation process error for tool '%s': %v\n", tool.Name, err)
-			return mcp.StatusError, fmt.Errorf("internal output validation error for tool '%s'", tool.Name)
+			return StatusError, fmt.Errorf("internal output validation error for tool '%s'", tool.Name)
 		}
 
 		if !outputResult.Valid() {
@@ -117,11 +122,11 @@ func ValidateToolOutput(
 			errorMsg := fmt.Sprintf("Tool '%s' output failed validation:\n%s\nRaw Output: %s",
 				tool.Name, strings.Join(validationErrors, "\n"), rawResult)
 			fmt.Println("SECURITY ALERT:", errorMsg)
-			return mcp.StatusFailed, errors.New(errorMsg)
+			return StatusFailed, errors.New(errorMsg)
 		}
 		fmt.Printf("Output content for tool '%s' validated successfully.\n", tool.Name)
 	}
-	return mcp.StatusSucceeded, nil
+	return StatusSucceeded, nil
 }
 
 // ValidateToolDescription analyzes the tools descriptive text for hidden characters

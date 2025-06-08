@@ -1,7 +1,6 @@
 package validate
 
 import (
-	"context"
 	"encoding/json"
 	"testing"
 
@@ -41,13 +40,11 @@ func generateLargeString(size int) string {
 }
 
 func TestValidateToolInputSchema(t *testing.T) {
-	ctx := context.Background()
-
 	tests := []struct {
 		name           string
 		tool           *mcp.Tool
 		inputArguments []byte
-		expectedStatus mcp.ExecutionStatus
+		expectedStatus ValidationStatus
 		expectError    bool
 		errorContains  string
 	}{
@@ -72,7 +69,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 				"name": "John",
 				"age":  30,
 			}),
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -95,7 +92,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 			inputArguments: mustMarshalJSON(map[string]interface{}{
 				"name": "John",
 			}),
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -118,7 +115,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 			inputArguments: mustMarshalJSON(map[string]interface{}{
 				"age": 30,
 			}),
-			expectedStatus: mcp.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "Input validation failed",
 		},
@@ -143,7 +140,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 				"name": "John",
 				"age":  "thirty", // should be integer
 			}),
-			expectedStatus: mcp.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "Input validation failed",
 		},
@@ -162,7 +159,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 				}),
 			},
 			inputArguments: []byte(`{}`),
-			expectedStatus: mcp.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "Input validation failed",
 		},
@@ -180,7 +177,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 				}),
 			},
 			inputArguments: []byte(`{}`),
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -197,7 +194,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 				}),
 			},
 			inputArguments: []byte(`{"name": "John"`), // missing closing brace
-			expectedStatus: mcp.StatusError,
+			expectedStatus: StatusError,
 			expectError:    true,
 			errorContains:  "internal validation error",
 		},
@@ -210,7 +207,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 			inputArguments: mustMarshalJSON(map[string]interface{}{
 				"name": "John",
 			}),
-			expectedStatus: mcp.StatusError,
+			expectedStatus: StatusError,
 			expectError:    true,
 			errorContains:  "internal schema error",
 		},
@@ -223,7 +220,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 			inputArguments: mustMarshalJSON(map[string]interface{}{
 				"name": "John",
 			}),
-			expectedStatus: mcp.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "no InputSchema defined",
 		},
@@ -265,7 +262,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 					},
 				},
 			}),
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -306,7 +303,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 					},
 				},
 			}),
-			expectedStatus: mcp.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "Input validation failed",
 		},
@@ -330,7 +327,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 			inputArguments: mustMarshalJSON(map[string]interface{}{
 				"items": []string{"apple", "banana", "cherry"},
 			}),
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -353,7 +350,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 			inputArguments: mustMarshalJSON(map[string]interface{}{
 				"items": []interface{}{"apple", 123, "cherry"}, // 123 should be string
 			}),
-			expectedStatus: mcp.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "Input validation failed",
 		},
@@ -361,7 +358,7 @@ func TestValidateToolInputSchema(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status, err := ValidateToolInputSchema(ctx, tt.tool, tt.inputArguments)
+			status, err := ValidateToolInputSchema(tt.tool, tt.inputArguments)
 
 			// Check execution status
 			if status != tt.expectedStatus {
@@ -387,7 +384,6 @@ func TestValidateToolInputSchema(t *testing.T) {
 }
 
 func TestValidateToolInputSchema_NilTool(t *testing.T) {
-	ctx := context.Background()
 	inputArgs := []byte(`{"test": "value"}`)
 
 	// This should panic or handle gracefully - testing the behavior
@@ -397,11 +393,10 @@ func TestValidateToolInputSchema_NilTool(t *testing.T) {
 		}
 	}()
 
-	ValidateToolInputSchema(ctx, nil, inputArgs)
+	ValidateToolInputSchema(nil, inputArgs)
 }
 
 func TestValidateToolInputSchema_NilInputArguments(t *testing.T) {
-	ctx := context.Background()
 	tool := &mcp.Tool{
 		Name: "test-tool",
 		InputSchema: mustMarshalJSON(map[string]interface{}{
@@ -414,10 +409,10 @@ func TestValidateToolInputSchema_NilInputArguments(t *testing.T) {
 		}),
 	}
 
-	status, err := ValidateToolInputSchema(ctx, tool, nil)
+	status, err := ValidateToolInputSchema(tool, nil)
 
 	// Should handle nil input gracefully
-	if status != mcp.StatusError && status != mcp.StatusFailed {
+	if status != StatusError && status != StatusFailed {
 		t.Errorf("ValidateToolInputSchema() with nil input should return error or failed status, got %v", status)
 	}
 	if err == nil {
@@ -430,7 +425,7 @@ func TestValidateToolOutput(t *testing.T) {
 		name           string
 		tool           *mcp.Tool
 		rawResult      string
-		expectedStatus mcp.ExecutionStatus
+		expectedStatus ValidationStatus
 		expectError    bool
 		errorContains  string
 	}{
@@ -452,7 +447,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `{"message": "Hello World", "status": "success"}`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -473,7 +468,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `{"message": "Hello World"}`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -494,7 +489,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `{"status": "success"}`,
-			expectedStatus: mcp.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "output failed validation",
 		},
@@ -513,7 +508,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `{"count": "not-a-number"}`,
-			expectedStatus: mcp.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "output failed validation",
 		},
@@ -531,7 +526,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `{"message": "Hello World"`, // missing closing brace
-			expectedStatus: mcp.StatusError,
+			expectedStatus: StatusError,
 			expectError:    true,
 			errorContains:  "internal output validation error",
 		},
@@ -542,7 +537,7 @@ func TestValidateToolOutput(t *testing.T) {
 				OutputSchema: []byte(`{"type": "invalid-type"}`), // invalid schema
 			},
 			rawResult:      `{"message": "Hello World"}`,
-			expectedStatus: mcp.StatusError,
+			expectedStatus: StatusError,
 			expectError:    true,
 			errorContains:  "internal output schema error",
 		},
@@ -553,7 +548,7 @@ func TestValidateToolOutput(t *testing.T) {
 				OutputSchema: []byte{}, // empty schema
 			},
 			rawResult:      `{"anything": "goes"}`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -563,7 +558,7 @@ func TestValidateToolOutput(t *testing.T) {
 				OutputSchema: nil, // nil schema
 			},
 			rawResult:      `{"anything": "goes"}`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -618,7 +613,7 @@ func TestValidateToolOutput(t *testing.T) {
 					}
 				}
 			}`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -673,7 +668,7 @@ func TestValidateToolOutput(t *testing.T) {
 					}
 				}
 			}`,
-			expectedStatus: mcp.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "output failed validation",
 		},
@@ -689,7 +684,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `["apple", "banana", "cherry"]`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -704,7 +699,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `["apple", 123, "cherry"]`,
-			expectedStatus: mcp.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "output failed validation",
 		},
@@ -717,7 +712,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `"Hello World"`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -729,7 +724,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `123`,
-			expectedStatus: mcp.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "output failed validation",
 		},
@@ -742,7 +737,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `true`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -754,7 +749,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `"true"`,
-			expectedStatus: mcp.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "output failed validation",
 		},
@@ -767,7 +762,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `42`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -779,7 +774,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `42.5`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -796,7 +791,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      ``,
-			expectedStatus: mcp.StatusError,
+			expectedStatus: StatusError,
 			expectError:    true,
 			errorContains:  "internal output validation error",
 		},
@@ -809,7 +804,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `null`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -828,7 +823,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `{"required_field": "value", "extra_field": "allowed"}`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -847,7 +842,7 @@ func TestValidateToolOutput(t *testing.T) {
 				}),
 			},
 			rawResult:      `{"required_field": "value", "extra_field": "not_allowed"}`,
-			expectedStatus: mcp.StatusFailed,
+			expectedStatus: StatusFailed,
 			expectError:    true,
 			errorContains:  "output failed validation",
 		},
@@ -898,7 +893,7 @@ func TestValidateToolOutput_EdgeCases(t *testing.T) {
 		name           string
 		tool           *mcp.Tool
 		rawResult      string
-		expectedStatus mcp.ExecutionStatus
+		expectedStatus ValidationStatus
 		expectError    bool
 		errorContains  string
 	}{
@@ -911,7 +906,7 @@ func TestValidateToolOutput_EdgeCases(t *testing.T) {
 				}),
 			},
 			rawResult:      `"` + generateLargeString(10000) + `"`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -928,7 +923,7 @@ func TestValidateToolOutput_EdgeCases(t *testing.T) {
 				}),
 			},
 			rawResult:      `{"message": "Hello 世界! 🌍 emoji test"}`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 		{
@@ -964,7 +959,7 @@ func TestValidateToolOutput_EdgeCases(t *testing.T) {
 				}),
 			},
 			rawResult:      `{"level1": {"level2": {"level3": {"value": "deep"}}}}`,
-			expectedStatus: mcp.StatusSucceeded,
+			expectedStatus: StatusSucceeded,
 			expectError:    false,
 		},
 	}
