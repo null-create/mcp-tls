@@ -68,12 +68,27 @@ chmod +x ./bin/server
 docker build -t mcp-tls-server .
 ```
 
+Run basic with basic configs
+
+```bash
+docker run --name mcp-tls-server \
+  -p 8080:8080 \
+  -d \
+  mcp-tls-server
+```
+
+Run with TLS configs enabled
+
 ```bash
 docker run --name mcp-tls-server \
   -p 8080:8080 \
   -v "$(pwd)/certs:/app/certs:ro" \
+  -e MCPTLS_ENABLED="true" \
+  -e MCPTLS_CERT_FILE="path/to/cert/file" \
+  -e MCPTLS_KEY_FILE="path/to/key/file" \
   -d \
   mcp-tls-server
+
 ```
 
 ### API Endpoints
