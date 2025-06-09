@@ -48,13 +48,13 @@ Optional environment variables
 
 | Environment Variable | Description                                   | Required | Default |
 | -------------------- | --------------------------------------------- | -------- | ------- |
-| `TLS_CERT_FILE`      | Path to the TLS certificate file              | No       | _unset_ |
-| `TLS_KEY_FILE`       | Path to the TLS private key file              | No       | _unset_ |
-| `TLS_ENABLED`        | Whether TLS will be enforced                  | No       | _unset_ |
-| `SERVER_PORT`        | Port the server listens on                    | No       | `8080`  |
-| `LOG_LEVEL`          | Log verbosity level (`debug`, `info`, `warn`) | No       | `info`  |
+| `MCPTLS_CERT_FILE`   | Path to the TLS certificate file              | No       | _unset_ |
+| `MCPTLS_KEY_FILE`    | Path to the TLS private key file              | No       | _unset_ |
+| `MCPTLS_ENABLED`     | Whether TLS will be enforced                  | No       | _unset_ |
+| `MCPTLS_SERVER_PORT` | Port the server listens on                    | No       | `8080`  |
+| `MCPTLS_LOG_LEVEL`   | Log verbosity level (`debug`, `info`, `warn`) | No       | `info`  |
 
-### Build and Run
+### Build and Run a binary
 
 ```bash
 go build -o bin/server ./cmd/server
@@ -65,8 +65,15 @@ chmod +x ./bin/server
 ### Build and run with Docker
 
 ```bash
-docker build -t mcptls-server .
-docker run -p 8080:8080 -d mcptls-server
+docker build -t mcp-tls-server .
+```
+
+```bash
+docker run --name mcp-tls-server \
+  -p 8080:8080 \
+  -v "$(pwd)/certs:/app/certs:ro" \
+  -d \
+  mcp-tls-server
 ```
 
 ### API Endpoints
@@ -86,11 +93,11 @@ curl -X POST https://localhost:8443/api/tools/validate \
 **Example with TLS enabled:**
 
 ```bash
-curl --cacert certs/ca.crt \
+curl -X POST https://localhost:8443/api/tools/validate \
+     -H "Content-Type: application/json" \
+     --cacert certs/ca.crt \
      --cert certs/client.crt \
      --key certs/client.key \
-     -X POST https://localhost:8443/api/tools/validate \
-     -H "Content-Type: application/json" \
      -d @tool.json
 ```
 

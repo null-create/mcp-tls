@@ -23,7 +23,7 @@ func TestToolRegistry(t *testing.T) {
 	tool := Tool{
 		Name:        "test-tool",
 		Description: "A test tool",
-		Schema:      testSchema,
+		InputSchema: testSchema,
 	}
 
 	// Register the tool
@@ -75,7 +75,7 @@ func TestToolTampering(t *testing.T) {
 	tool := Tool{
 		Name:        "test-tool",
 		Description: "A test tool",
-		Schema:      testSchema,
+		InputSchema: testSchema,
 	}
 
 	// Register the tool
@@ -176,7 +176,7 @@ func TestSchemaModification(t *testing.T) {
 	tool := Tool{
 		Name:        "schema-tool",
 		Description: "A tool with a schema",
-		Schema:      originalSchema,
+		InputSchema: originalSchema,
 	}
 
 	// Register the tool
@@ -203,7 +203,7 @@ func TestSchemaModification(t *testing.T) {
 
 	// Update the tool with modified schema but keep original fingerprint
 	modifiedTool := registeredTool
-	modifiedTool.Schema = modifiedSchema
+	modifiedTool.InputSchema = modifiedSchema
 
 	// Replace the tool (bypassing validation)
 	registry.tools["schema-tool"] = modifiedTool
@@ -222,7 +222,7 @@ func TestToolManagerLifecycle(t *testing.T) {
 	tool := Tool{
 		Name:        "lifecycle-tool",
 		Description: "A tool for testing lifecycle",
-		Schema:      json.RawMessage(`{"type": "object"}`),
+		InputSchema: json.RawMessage(`{"type": "object"}`),
 	}
 
 	if err := manager.RegisterTool(tool); err != nil {
@@ -299,7 +299,7 @@ func TestUnsignedToolRejection(t *testing.T) {
 	tool := Tool{
 		Name:        "unsigned-tool",
 		Description: "An unsigned tool",
-		Schema:      json.RawMessage(`{"type": "object"}`),
+		InputSchema: json.RawMessage(`{"type": "object"}`),
 		// Deliberately omit fingerprint and checksum
 	}
 

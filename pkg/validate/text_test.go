@@ -128,7 +128,7 @@ func TestDetectHiddenUnicode(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actualDetections := DetectHiddenUnicode(tc.input)
+			actualDetections := detectHiddenUnicode(tc.input)
 
 			// Use require for length check, as mismatch makes element checks pointless
 			require.Len(t, actualDetections, len(tc.expected), "Number of detections mismatch")

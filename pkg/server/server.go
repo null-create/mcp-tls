@@ -12,6 +12,7 @@ import (
 )
 
 type Conf struct {
+	Proxy        bool // Whether this is a proxy server
 	TimeoutRead  time.Duration
 	TimeoutWrite time.Duration
 	TimeoutIdle  time.Duration
@@ -78,6 +79,7 @@ func (s *Server) Run() {
 		<-sig
 
 		// shutdown signal with grace period of 10 seconds
+		// nolint:golint
 		shutdownCtx, _ := context.WithTimeout(serverCtx, 10*time.Second)
 
 		go func() {
@@ -99,7 +101,7 @@ func (s *Server) Run() {
 		serverStopCtx()
 	}()
 
-	log.Println("starting server...")
+	log.Printf("🛠️ MCP-TLS server is running on at %s...", s.Svr.Addr)
 	if err := s.Svr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}

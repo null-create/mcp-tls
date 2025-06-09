@@ -2,26 +2,25 @@ package main
 
 import (
 	"log"
-	"os"
 
+	"github.com/null-create/mcp-tls/pkg/config"
 	"github.com/null-create/mcp-tls/pkg/server"
 )
 
 func main() {
 	router := server.NewRouter()
+	cfgs := config.LoadConfigs()
 
-	tlsEnabled := os.Getenv("TLS_ENABLED")
-	if tlsEnabled != "" && tlsEnabled == "true" {
+	if cfgs.TLSConfig.TLSEnabled {
 		err := server.StartSecureServer(server.TLSOptions{
-			CertFile:          "certs/server.crt",
-			KeyFile:           "certs/server.key",
-			ClientCAFile:      "certs/ca.crt", // Optional
-			RequireClientCert: false,          // Set to true if mTLS is needed
+			CertFile:          cfgs.TLSConfig.TLSCertFile,
+			KeyFile:           cfgs.TLSConfig.TLSKeyFile,
+			ClientCAFile:      cfgs.TLSConfig.TLSClientCAFile, // Optional
+			RequireClientCert: false,                          // Set to true if mTLS is needed
 			Addr:              ":8443",
 		}, router)
-
 		if err != nil {
-			log.Fatalf("TLS server failed: %v", err)
+			log.Fatalf("❌ TLS server failed: %v", err)
 		}
 	} else {
 		server := server.NewServer(router)

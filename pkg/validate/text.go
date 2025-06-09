@@ -68,11 +68,11 @@ func isDeprecated(r rune) bool {
 	return false
 }
 
-// DetectHiddenUnicode scans the input string for runes falling into
+// detectHiddenUnicode scans the input string for runes falling into
 // predefined problematic categories like Unicode Tags, Bidi controls, etc.
 // It returns a slice of DetectedCharInfo for each problematic rune found,
 // including a translated representation where applicable.
-func DetectHiddenUnicode(text string) []DetectedCharInfo {
+func detectHiddenUnicode(text string) []DetectedCharInfo {
 	var detected = make([]DetectedCharInfo, 0)
 	for index, r := range text {
 		var category DetectionCategory
