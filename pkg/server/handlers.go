@@ -10,11 +10,6 @@ import (
 	"github.com/null-create/mcp-tls/pkg/validate"
 )
 
-const (
-	proxyListenAddr  = ":9000"
-	targetServerAddr = "localhost:9001"
-)
-
 type Handlers struct {
 	ClientURL   string
 	ServerURL   string
