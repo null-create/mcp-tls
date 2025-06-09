@@ -11,8 +11,6 @@ import (
 )
 
 type Handlers struct {
-	ClientURL   string
-	ServerURL   string
 	toolManager *mcp.ToolManager
 }
 
