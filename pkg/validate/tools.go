@@ -96,7 +96,6 @@ func ValidateToolOutput(rawResult string, tool *mcp.Tool) (ValidationStatus, err
 	if len(tool.OutputSchema) > 0 {
 		outputSchemaLoader := gojsonschema.NewBytesLoader(tool.OutputSchema)
 		outputDocumentLoader := gojsonschema.NewStringLoader(rawResult)
-
 		outputSchema, err := gojsonschema.NewSchema(outputSchemaLoader)
 		if err != nil {
 			fmt.Printf("ERROR: Invalid OutputSchema for tool '%s': %v\n", tool.Name, err)
