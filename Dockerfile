@@ -15,8 +15,7 @@ RUN CGO_ENABLED=0 \
 
 # Stage 2: Run the binary in a minimal image
 FROM alpine:latest
-
-ENV TLS_ENABLED=""
+ENV MCPTLS_ENABLED="false"
 ENV SERVER_PORT=8080
 ENV LOG_LEVEL=info
 
