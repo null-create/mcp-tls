@@ -2,9 +2,11 @@ package mcp
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"hash"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
@@ -194,4 +196,209 @@ func CompareHashes(hash1, hash2 string) HashComparison {
 		Match:   hash1 == hash2,
 		Changed: hash1 != hash2,
 	}
+}
+
+// ---- Code Hashing Handlers
+
+// HTTP Handler struct
+type CodeHasherHandler struct {
+	hasher *CodeHasher
+}
+
+// NewCodeHasherHandler creates a new HTTP handler instance
+func NewCodeHasherHandler() *CodeHasherHandler {
+	return &CodeHasherHandler{
+		hasher: NewCodeHasher(),
+	}
+}
+
+// handleHashString handles POST /hash/string - hash code from string
+func (h *CodeHasherHandler) handleHashString(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req HashStringRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.sendErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.Code == "" {
+		h.sendErrorResponse(w, "Code is required", http.StatusBadRequest)
+		return
+	}
+
+	hash := h.hasher.GenerateStringHash(req.Code, req.Dependencies)
+	h.sendHashResponse(w, hash, "")
+}
+
+// handleHashTool handles POST /hash/tool - hash complete tool implementation
+func (h *CodeHasherHandler) handleHashTool(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req HashToolRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.sendErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.Tool.Name == "" {
+		h.sendErrorResponse(w, "Tool name is required", http.StatusBadRequest)
+		return
+	}
+
+	hash, err := h.hasher.GenerateToolHash(&req.Tool)
+	if err != nil {
+		h.sendErrorResponse(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.sendHashResponse(w, hash, "")
+}
+
+// handleHashFiles handles POST /hash/files - hash multiple source files
+func (h *CodeHasherHandler) handleHashFiles(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req HashFilesRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.sendErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.SourceFiles) == 0 {
+		h.sendErrorResponse(w, "Source files are required", http.StatusBadRequest)
+		return
+	}
+
+	hash, err := h.hasher.GenerateCodeOnlyHash(req.SourceFiles)
+	if err != nil {
+		h.sendErrorResponse(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.sendHashResponse(w, hash, "")
+}
+
+// handleCompareHashes handles POST /hash/compare - compare two hashes
+func (h *CodeHasherHandler) handleCompareHashes(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req ComparisonRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.Hash1 == "" || req.Hash2 == "" {
+		http.Error(w, "Both hash1 and hash2 are required", http.StatusBadRequest)
+		return
+	}
+
+	comparison := CompareHashes(req.Hash1, req.Hash2)
+	response := ComparisonResponse{
+		Hash1:   comparison.Hash1,
+		Hash2:   comparison.Hash2,
+		Match:   comparison.Match,
+		Changed: comparison.Changed,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleDiscoverFiles handles POST /discover - discover source files in directory
+func (h *CodeHasherHandler) handleDiscoverFiles(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req DiscoverFilesRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.sendDiscoverResponse(w, nil, 0, "Invalid JSON")
+		return
+	}
+
+	if req.RootDir == "" {
+		req.RootDir = "."
+	}
+
+	if len(req.Extensions) == 0 {
+		req.Extensions = []string{".go", ".py", ".js", ".java", ".cpp", ".c", ".rs"}
+	}
+
+	sourceFiles, err := DiscoverSourceFiles(req.RootDir, req.Extensions)
+	if err != nil {
+		h.sendDiscoverResponse(w, nil, 0, err.Error())
+		return
+	}
+
+	h.sendDiscoverResponse(w, sourceFiles, len(sourceFiles), "")
+}
+
+// handleHealth handles GET /health - health check endpoint
+func (h *CodeHasherHandler) handleHealth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "healthy",
+		"service": "code-hasher",
+	})
+}
+
+// Helper methods for sending responses
+func (h *CodeHasherHandler) sendHashResponse(w http.ResponseWriter, hash, errorMsg string) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if errorMsg != "" {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	response := HashResponse{
+		Hash:  hash,
+		Error: errorMsg,
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h *CodeHasherHandler) sendErrorResponse(w http.ResponseWriter, errorMsg string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	response := HashResponse{
+		Error: errorMsg,
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h *CodeHasherHandler) sendDiscoverResponse(w http.ResponseWriter, files []string, count int, errorMsg string) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if errorMsg != "" {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	response := DiscoverResponse{
+		SourceFiles: files,
+		Count:       count,
+		Error:       errorMsg,
+	}
+	json.NewEncoder(w).Encode(response)
 }
