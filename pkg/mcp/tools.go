@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"sort"
 	"time"
 )
@@ -131,6 +132,8 @@ type ToolValidationResult struct {
 
 // ToolRegistry maintains the set of trusted tools and schemas
 type ToolRegistry struct {
+	toolRepo            string // URL to exteral repository of trusted tools
+	apiKey              string // API key to trust tool repo
 	tools               map[string]Tool
 	securityEnabled     bool
 	validateChecksums   bool
@@ -143,6 +146,12 @@ func NewToolRegistry(securityEnabled bool) *ToolRegistry {
 		tools:           make(map[string]Tool),
 		securityEnabled: securityEnabled,
 	}
+}
+
+// Configure the remote tool repo credentials
+func (tr *ToolRegistry) SetRegistryCreds(url, apiKey string) {
+	tr.toolRepo = url
+	tr.apiKey = apiKey
 }
 
 // SetSecurityOptions configures the security options for the tool registry
@@ -227,6 +236,40 @@ func (tr *ToolRegistry) ListTools() ToolSet {
 		SchemaFingerprintAlgo: "SHA-256",
 		ChecksumAlgo:          "SHA-256",
 	}
+}
+
+// LoadTools retrieves all trusted tool schema definitions
+// into the internal map. These definitions are not exported anywhere
+// since the validator is intended to be stateless.
+func (tr *ToolRegistry) LoadTools() error {
+	if tr.apiKey == "" || tr.toolRepo == "" {
+		return fmt.Errorf("missing tool repo credentials")
+	}
+
+	// API call to get list of trusted tool schemas
+	client := http.Client{Timeout: time.Second * 3}
+
+	req, err := http.NewRequest(http.MethodGet, tr.toolRepo, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("received non-200 status: %d", resp.StatusCode)
+	}
+
+	// parse results into mcp.Tool objects and add to internal map
+	var tools map[string]Tool
+	if err = json.NewDecoder(resp.Body).Decode(&tools); err != nil {
+		return err
+	}
+
+	tr.tools = tools
+
+	return nil
 }
 
 // canonicalizeJson converts a JSON object to a canonical form for consistent hashing
