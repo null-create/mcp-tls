@@ -26,6 +26,19 @@ func (h *Handlers) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handlers) LoadToolsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.toolManager.LoadTools(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	// send confirmation response
+}
+
 func (h *Handlers) ValidateToolHandler(w http.ResponseWriter, r *http.Request) {
 	var tool mcp.Tool
 	if err := json.NewDecoder(r.Body).Decode(&tool); err != nil {
