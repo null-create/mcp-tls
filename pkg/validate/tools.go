@@ -1,6 +1,7 @@
 package validate
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -224,4 +225,19 @@ func generateToolChecksum(tool mcp.Tool) (string, error) {
 
 	hash := sha256.Sum256(canonical)
 	return hex.EncodeToString(hash[:]), nil
+}
+
+// Use canonical serialization (deterministic field order)
+func CanonicalizeAndHash(tool mcp.Tool) (string, error) {
+	buf := &bytes.Buffer{}
+	encoder := json.NewEncoder(buf)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "")
+
+	if err := encoder.Encode(tool); err != nil {
+		return "", fmt.Errorf("failed to serialize tool: %w", err)
+	}
+
+	hash := sha256.Sum256(buf.Bytes())
+	return fmt.Sprintf("%x", hash[:]), nil
 }

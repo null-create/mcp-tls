@@ -13,6 +13,7 @@ type Config struct {
 	ServerPort string // (OPTIONAL) server port. defaults to 8080
 	ClientURL  string // URL to pass responses from the server to
 	ServerURL  string // URL to pass requests from the client to
+	Proxy      bool   // Whether the server functions as a proxy server (defaults to false)
 	TLSConfig  tls.TLSConfig
 }
 

@@ -1,14 +1,10 @@
 package server
 
 import (
-	"bufio"
 	"encoding/json"
-	"io"
-	"log"
-	"net"
 	"net/http"
+	"sync"
 
-	"github.com/null-create/mcp-tls/pkg/codec"
 	"github.com/null-create/mcp-tls/pkg/mcp"
 	"github.com/null-create/mcp-tls/pkg/util"
 	"github.com/null-create/mcp-tls/pkg/validate"
@@ -33,7 +29,7 @@ func NewHandler() Handlers {
 
 func (h *Handlers) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(`{"status":"ok"}`); err != nil {
-		log.Printf("ERROR: failed to encode health check response: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -44,177 +40,91 @@ func (h *Handlers) ValidateToolHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := mcp.CanonicalizeAndHash(tool)
-	if err != nil {
-		util.WriteJSON(w, mcp.ToolValidationResult{
-			Name:  tool.Name,
-			Valid: false,
-			Error: err.Error(),
-		})
-		return
-	}
+	result := h.validate(&tool)
 
-	// validate tool description
-	err = validate.ValidateToolDescription(tool.Description)
-	if err != nil {
-		util.WriteJSON(w, mcp.ToolValidationResult{
-			Name:  tool.Name,
-			Valid: false,
-			Error: err.Error(),
-		})
-		return
-	}
-
-	// validate tool schema
-	status, err := validate.ValidateToolInputSchema(&tool, tool.Arguments)
-	if err != nil {
-		util.WriteJSON(w, mcp.ToolValidationResult{
-			Name:  tool.Name,
-			Valid: false,
-			Error: err.Error(),
-		})
-		return
-	}
-	if status == validate.StatusFailed {
-		util.WriteJSON(w, mcp.ToolValidationResult{
-			Name:  tool.Name,
-			Valid: false,
-			Error: "tool validation failed",
-		})
-		return
-	}
-
-	util.WriteJSON(w, mcp.ToolValidationResult{
-		Name:     tool.Name,
-		Checksum: hash,
-		Valid:    true,
-	})
+	util.WriteJSON(w, result)
 }
 
 func (h *Handlers) ValidateToolsHandler(w http.ResponseWriter, r *http.Request) {
-	var tools []mcp.Tool // or ToolDescription? This is what's used in the validate module
+	var tools []mcp.Tool
 	if err := json.NewDecoder(r.Body).Decode(&tools); err != nil {
 		util.WriteError(w, http.StatusBadRequest, "Invalid JSON array: "+err.Error())
 		return
 	}
 
-	results := make([]mcp.ToolValidationResult, 0, len(tools))
+	var (
+		wg      sync.WaitGroup
+		mu      sync.Mutex
+		results = make([]mcp.ToolValidationResult, 0, len(tools))
+	)
+
 	for _, tool := range tools {
-		hash, err := mcp.CanonicalizeAndHash(tool)
-		if err != nil {
-			results = append(results, mcp.ToolValidationResult{
-				Name:  tool.Name,
-				Valid: false,
-				Error: err.Error(),
-			})
-		} else {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 
-			// TODO: validate each tool in their own goroutine
+			result := h.validate(&tool)
 
-			results = append(results, mcp.ToolValidationResult{
-				Name:     tool.Name,
-				Valid:    true,
-				Checksum: hash,
-			})
-		}
+			mu.Lock()
+			results = append(results, result)
+			mu.Unlock()
+		}()
+
 	}
+	wg.Wait()
 
 	util.WriteJSON(w, results)
 }
 
-// Intercepts client-to-server and validates tool call requests
-func (h *Handlers) validateAndForward(data []byte) ([]byte, error) {
-	var req codec.JSONRPCRequest
-	if err := json.Unmarshal(data, &req); err != nil {
-		log.Println("Invalid JSON-RPC:", err)
-		return nil, err
-	}
-
-	if req.Method == "tool.call" {
-		var tool mcp.Tool
-		if err := json.Unmarshal(req.Params, &tool); err != nil {
-			log.Printf("Failed to unmarshal request params to tool description object: %v", err)
-			return nil, err
-		}
-
-		status, err := validate.ValidateToolInputSchema(&tool, tool.Arguments)
-		if err != nil {
-			log.Printf("Failed to validate tool schema: %v", err)
-			return nil, err
-		}
-		if status == validate.StatusSucceeded {
-			// valid schema. validate description before passing onward
-			return json.Marshal(req)
-		}
-	}
-	return json.Marshal(codec.JSONRPCError{
-		Code: codec.INVALID_REQUEST,
-	})
-}
-
-func (h *Handlers) handleConnection(clientConn net.Conn) {
-	defer clientConn.Close()
-
-	serverConn, err := net.Dial("tcp", targetServerAddr)
+func (h *Handlers) validate(tool *mcp.Tool) mcp.ToolValidationResult {
+	origTool, err := h.toolManager.GetTool(tool.Name)
 	if err != nil {
-		log.Printf("Failed to connect to MCP server: %v", err)
-		return
-	}
-	defer serverConn.Close()
-
-	go h.proxyStream(clientConn, serverConn, h.validateAndForward)
-	h.proxyStream(serverConn, clientConn, h.passthrough)
-}
-
-// Simple passthrough for server-to-client direction
-func (h *Handlers) passthrough(data []byte) ([]byte, error) {
-	return data, nil
-}
-
-type toolError string
-
-func (e toolError) Error() string { return string(e) }
-
-func ErrInvalidTool(msg string) error { return toolError("Invalid tool call: " + msg) }
-
-// Handles framed JSON messages over TCP (e.g., newline-delimited)
-func (h *Handlers) proxyStream(src, dst net.Conn, transform func([]byte) ([]byte, error)) {
-	reader := bufio.NewReader(src)
-	writer := bufio.NewWriter(dst)
-
-	for {
-		line, err := reader.ReadBytes('\n') // framing logic (newline-delimited)
-		if err != nil {
-			if err != io.EOF {
-				log.Printf("Stream read error: %v", err)
-			}
-			return
+		return mcp.ToolValidationResult{
+			Name:  tool.Name,
+			Valid: false,
+			Error: err.Error(),
 		}
-
-		processed, err := transform(line)
-		if err != nil {
-			log.Printf("Processing error: %v", err)
-			return
-		}
-
-		writer.Write(processed)
-		writer.Flush()
 	}
-}
 
-func (h *Handlers) proxy() {
-	listener, err := net.Listen("tcp", proxyListenAddr)
+	if tool.SecurityMetadata.Signature != origTool.SecurityMetadata.Signature ||
+		tool.SecurityMetadata.Checksum != origTool.SecurityMetadata.Checksum {
+		return mcp.ToolValidationResult{
+			Name:  tool.Name,
+			Valid: false,
+			Error: "signature or checksum mismatch",
+		}
+	}
+
+	// validate tool description
+	err = validate.ValidateToolDescription(tool.Description)
 	if err != nil {
-		log.Fatalf("Proxy listen failed: %v", err)
-	}
-	log.Printf("MCP proxy listening on %s → %s", proxyListenAddr, targetServerAddr)
-
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Printf("Connection accept failed: %v", err)
-			continue
+		return mcp.ToolValidationResult{
+			Name:  tool.Name,
+			Valid: false,
+			Error: err.Error(),
 		}
-		go h.handleConnection(conn)
+	}
+
+	// validate tool schema
+	status, err := validate.ValidateToolInputSchema(tool, tool.Arguments)
+	if err != nil {
+		return mcp.ToolValidationResult{
+			Name:  tool.Name,
+			Valid: false,
+			Error: err.Error(),
+		}
+	}
+	if status == validate.StatusFailed {
+		return mcp.ToolValidationResult{
+			Name:  tool.Name,
+			Valid: false,
+			Error: "validation failed",
+		}
+	}
+
+	return mcp.ToolValidationResult{
+		Name:     tool.Name,
+		Valid:    true,
+		Checksum: tool.SecurityMetadata.Checksum,
 	}
 }

@@ -12,6 +12,7 @@ import (
 )
 
 type Conf struct {
+	Proxy        bool // Whether this is a proxy server
 	TimeoutRead  time.Duration
 	TimeoutWrite time.Duration
 	TimeoutIdle  time.Duration
