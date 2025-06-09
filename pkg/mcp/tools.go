@@ -103,17 +103,6 @@ type ToolDescription struct {
 	OutputSchema json.RawMessage `json:"output_schema,omitempty"` // Optional: Schema for the tool's result
 }
 
-// ToolResultMetadata provides details about the execution of a tool.
-// This is embedded within a `Message` where `Role == RoleTool`.
-type ToolResultMetadata struct {
-	ExecutionStatus ExecutionStatus `json:"execution_status"`        // Succeeded, Failed, Error
-	ErrorMessage    string          `json:"error_message,omitempty"` // Details if status is Failed or Error
-	OutputHash      string          `json:"output_hash,omitempty"`   // Cryptographic hash of the raw output content (in Message.Content)
-	ExecutedAt      time.Time       `json:"executed_at"`             // Timestamp of tool execution completion
-	ExecutionEnv    string          `json:"execution_env,omitempty"` // Info about the environment (e.g., "sandbox-v1", "direct-api")
-	// Potential Extensions: Latency, cost, logs reference, etc.
-}
-
 // ToolValidationResult details the results of a tool validation process
 type ToolValidationResult struct {
 	Name     string `json:"name"`
@@ -123,6 +112,7 @@ type ToolValidationResult struct {
 }
 
 // ToolRegistry maintains the set of trusted tools and schemas
+// used for validation
 type ToolRegistry struct {
 	toolRepo            string // URL to exteral repository of trusted tools
 	apiKey              string // API key to trust tool repo
