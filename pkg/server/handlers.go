@@ -2,38 +2,49 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"sync"
 
 	"github.com/null-create/mcp-tls/pkg/mcp"
 	"github.com/null-create/mcp-tls/pkg/util"
 	"github.com/null-create/mcp-tls/pkg/validate"
+
+	"github.com/google/uuid"
+	"github.com/null-create/logger"
 )
 
 type Handlers struct {
+	log         *logger.Logger
 	toolManager *mcp.ToolManager
 }
 
 func NewHandler() Handlers {
 	return Handlers{
+		log:         logger.NewLogger("API", uuid.NewString()),
 		toolManager: mcp.NewToolManager("mcp-tls-tool-manager", "1.0.0", true),
 	}
 }
 
+func (h *Handlers) errorMsg(w http.ResponseWriter, err error, statusCode int) {
+	h.log.Error("%v", err)
+	http.Error(w, err.Error(), statusCode)
+}
+
 func (h *Handlers) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(`{"status":"ok"}`); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		h.errorMsg(w, err, http.StatusInternalServerError)
 	}
 }
 
 func (h *Handlers) LoadToolsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusBadRequest)
+		h.errorMsg(w, errors.New("method not allowed"), http.StatusBadRequest)
 		return
 	}
 
 	if err := h.toolManager.LoadTools(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		h.errorMsg(w, err, http.StatusInternalServerError)
 	}
 
 	// send confirmation response
