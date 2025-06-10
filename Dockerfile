@@ -15,7 +15,7 @@ RUN CGO_ENABLED=0 \
 
 # Stage 2: Run the binary in a minimal image
 FROM alpine:latest
-ENV MCPTLS_SERVER_ADDR="0.0.0.0:9000"
+ENV MCPTLS_SERVER_ADDR="0.0.0.0:9090"
 ENV MCPTLS_SERVER_PORT=9090
 
 RUN apk --no-cache update && apk --no-cache upgrade
