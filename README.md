@@ -75,6 +75,7 @@ Run basic with basic configs
 ```bash
 docker run --name mcp-tls-server \
   -p 8080:8080 \
+  -e MCPTLS_SERVER_ADDR="0.0.0.0:8080" \
   -d \
   mcp-tls-server
 ```
@@ -85,12 +86,23 @@ Run with TLS configs enabled
 docker run --name mcp-tls-server \
   -p 8080:8080 \
   -v "$(pwd)/certs:/app/certs:ro" \
+  -e MCPTLS_SERVER_ADDR="0.0.0.0:8080" \
   -e MCPTLS_ENABLED="true" \
   -e MCPTLS_CERT_FILE="path/to/cert/file" \
   -e MCPTLS_KEY_FILE="path/to/key/file" \
   -d \
   mcp-tls-server
 
+```
+
+Run using `docker compose`
+
+```bash
+docker compose up -d
+```
+
+```bash
+docker compose down
 ```
 
 ### API Endpoints
