@@ -176,8 +176,9 @@ func (tr *ToolRegistry) RegisterTool(tool Tool) error {
 			tool.SecurityMetadata.Signature = fingerprint
 		}
 	}
-
-	tr.tools[tool.Name] = tool
+	if _, ok := tr.tools[tool.Name]; !ok {
+		tr.tools[tool.Name] = tool
+	}
 	return nil
 }
 
