@@ -18,15 +18,11 @@ FROM alpine:latest
 ENV MCPTLS_SERVER_ADDR="0.0.0.0:9000"
 ENV MCPTLS_SERVER_PORT=9090
 
-# Update image and add certificates support
-RUN apk --no-cache update && \
-    apk --no-cache upgrade && \
-    apk --no-cache add ca-certificates
+RUN apk --no-cache update && apk --no-cache upgrade
 
 WORKDIR /root/
 
 COPY --from=builder /app/mcp-tls-server .
-COPY certs/ /root/certs/
 
 EXPOSE 9090
 
