@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -48,6 +49,7 @@ func (h *Handlers) LoadToolsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// send confirmation response
+	json.NewEncoder(w).Encode(`{"message":"tools loaded"}`)
 }
 
 func (h *Handlers) ValidateToolHandler(w http.ResponseWriter, r *http.Request) {
@@ -150,4 +152,37 @@ func (h *Handlers) validate(tool *mcp.Tool) mcp.ToolValidationResult {
 		Valid:    true,
 		Checksum: tool.SecurityMetadata.Checksum,
 	}
+}
+
+// Lists tools known to the server
+func (h *Handlers) ListToolsHandler(w http.ResponseWriter, r *http.Request) {
+	tools := h.toolManager.GetTools()
+	if err := json.NewEncoder(w).Encode(tools); err != nil {
+		h.errorMsg(w, err, http.StatusInternalServerError)
+	}
+}
+
+// Handles tool registration
+func (h *Handlers) ToolRegistrationHandler(w http.ResponseWriter, r *http.Request) {
+	var tool mcp.Tool
+	if err := json.NewDecoder(r.Body).Decode(&tool); err != nil {
+		h.errorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+	if tool.SecurityMetadata.IsEmpty() {
+		h.errorMsg(w, errors.New("no security metadata found"), http.StatusBadRequest)
+		return
+	}
+	if err := h.toolManager.RegisterTool(tool); err != nil {
+		h.errorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	type Response struct {
+		Msg string `json:"message"`
+	}
+
+	json.NewEncoder(w).Encode(Response{
+		Msg: fmt.Sprintf("tool '%s' has been registered", tool.Name),
+	})
 }
