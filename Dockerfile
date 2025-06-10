@@ -16,7 +16,7 @@ RUN CGO_ENABLED=0 \
 # Stage 2: Run the binary in a minimal image
 FROM alpine:latest
 ENV MCPTLS_ENABLED="false"
-ENV MCPTLS_SERVER_PORT=8080
+ENV MCPTLS_SERVER_PORT=9090
 
 # Update image and add certificates support
 RUN apk --no-cache update && \
@@ -28,7 +28,7 @@ WORKDIR /root/
 COPY --from=builder /app/mcp-tls-server .
 COPY certs/ /root/certs/
 
-EXPOSE 8080
+EXPOSE 9090
 
 RUN chmod +x ./mcp-tls-server
 
