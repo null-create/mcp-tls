@@ -48,13 +48,11 @@ A lightweight utility server that validates tool definitions for integrity and s
 
 Optional environment variables
 
-| Environment Variable | Description                                   | Required | Default |
-| -------------------- | --------------------------------------------- | -------- | ------- |
-| `MCPTLS_CERT_FILE`   | Path to the TLS certificate file              | No       | _unset_ |
-| `MCPTLS_KEY_FILE`    | Path to the TLS private key file              | No       | _unset_ |
-| `MCPTLS_ENABLED`     | Whether TLS will be enforced                  | No       | _unset_ |
-| `MCPTLS_SERVER_PORT` | Port the server listens on                    | No       | `8080`  |
-| `MCPTLS_LOG_LEVEL`   | Log verbosity level (`debug`, `info`, `warn`) | No       | `info`  |
+| Environment Variable | Description                                   | Required | Default s        |
+| -------------------- | --------------------------------------------- | -------- | ---------------- |
+| `MCPTLS_SERVER_PORT` | Port the server listens on                    | No       | `9090`           |
+| `MCPTLS_SERVER_ADDR` | Server address                                | No       | `localhost:9090` |
+| `MCPTLS_LOG_LEVEL`   | Log verbosity level (`debug`, `info`, `warn`) | No       | `info`           |
 
 ### Build and Run a binary
 
@@ -74,25 +72,10 @@ Run basic with basic configs
 
 ```bash
 docker run --name mcp-tls-server \
-  -p 8080:8080 \
-  -e MCPTLS_SERVER_ADDR="0.0.0.0:8080" \
+  -p 9090:9090 \
+  -e MCPTLS_SERVER_ADDR="0.0.0.0:9090" \
   -d \
   mcp-tls-server
-```
-
-Run with TLS configs enabled
-
-```bash
-docker run --name mcp-tls-server \
-  -p 8080:8080 \
-  -v "$(pwd)/certs:/app/certs:ro" \
-  -e MCPTLS_SERVER_ADDR="0.0.0.0:8080" \
-  -e MCPTLS_ENABLED="true" \
-  -e MCPTLS_CERT_FILE="path/to/cert/file" \
-  -e MCPTLS_KEY_FILE="path/to/key/file" \
-  -d \
-  mcp-tls-server
-
 ```
 
 Run using `docker compose`
