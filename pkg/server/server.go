@@ -9,9 +9,13 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/null-create/logger"
 )
 
 type Conf struct {
+	Addr         string
 	Proxy        bool // Whether this is a proxy server
 	TimeoutRead  time.Duration
 	TimeoutWrite time.Duration
@@ -19,7 +23,12 @@ type Conf struct {
 }
 
 func ServerConfigs() *Conf {
+	addr := os.Getenv("MCPTLS_SERVER_ADDR")
+	if addr == "" {
+		addr = "localhost:8080"
+	}
 	return &Conf{
+		Addr:         addr,
 		TimeoutRead:  time.Second * 30,
 		TimeoutWrite: time.Second * 30,
 		TimeoutIdle:  time.Second * 30,
@@ -32,15 +41,17 @@ func ServerConfigs() *Conf {
 type Server struct {
 	StartTime time.Time
 	Svr       *http.Server
+	log       *logger.Logger
 }
 
 func NewServer(handlers http.Handler) *Server {
 	svrCfgs := ServerConfigs()
 	return &Server{
 		StartTime: time.Now().UTC(),
+		log:       logger.NewLogger("SERVER", uuid.NewString()),
 		Svr: &http.Server{
 			Handler:      handlers,
-			Addr:         "localhost:9090",
+			Addr:         svrCfgs.Addr,
 			ReadTimeout:  svrCfgs.TimeoutRead,
 			WriteTimeout: svrCfgs.TimeoutWrite,
 			IdleTimeout:  svrCfgs.TimeoutIdle,

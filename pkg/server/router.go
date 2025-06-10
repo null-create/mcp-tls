@@ -22,10 +22,20 @@ func NewRouter() http.Handler {
 	// Health check
 	r.Get("/health", h.HealthCheckHandler)
 
-	// Validation routes
-	r.Route("/validate", func(r chi.Router) {
-		r.Post("/tool", h.ValidateToolHandler)
-		r.Post("/tools", h.ValidateToolsHandler)
+	// API routes
+	r.Route("/api", func(r chi.Router) {
+		r.Route("/validate", func(r chi.Router) {
+			r.Post("/tool", h.ValidateToolHandler)
+			r.Post("/tools", h.ValidateToolsHandler)
+		})
+		r.Route("/tools", func(r chi.Router) {
+			r.Route("/register", func(r chi.Router) {
+				r.Post("/", h.ToolRegistrationHandler)
+			})
+			r.Route("/list", func(r chi.Router) {
+				r.Get("/", h.ListToolsHandler)
+			})
+		})
 	})
 
 	return r

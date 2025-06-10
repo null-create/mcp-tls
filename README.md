@@ -28,6 +28,8 @@ A lightweight utility server that validates tool definitions for integrity and s
 ├── go.mod
 ├── go.sum
 └── pkg
+    ├── config/           # Project configurations
+    ├── logs/             # Log output directory
     ├── mcp/              # Core MCP-TLS data structures
     ├── server/           # HTTP server, routes, and handlers
     ├── tls/              # TLS transport encryption support
@@ -46,13 +48,11 @@ A lightweight utility server that validates tool definitions for integrity and s
 
 Optional environment variables
 
-| Environment Variable | Description                                   | Required | Default |
-| -------------------- | --------------------------------------------- | -------- | ------- |
-| `MCPTLS_CERT_FILE`   | Path to the TLS certificate file              | No       | _unset_ |
-| `MCPTLS_KEY_FILE`    | Path to the TLS private key file              | No       | _unset_ |
-| `MCPTLS_ENABLED`     | Whether TLS will be enforced                  | No       | _unset_ |
-| `MCPTLS_SERVER_PORT` | Port the server listens on                    | No       | `8080`  |
-| `MCPTLS_LOG_LEVEL`   | Log verbosity level (`debug`, `info`, `warn`) | No       | `info`  |
+| Environment Variable | Description                                   | Required | Default s        |
+| -------------------- | --------------------------------------------- | -------- | ---------------- |
+| `MCPTLS_SERVER_PORT` | Port the server listens on                    | No       | `9090`           |
+| `MCPTLS_SERVER_ADDR` | Server address                                | No       | `localhost:9090` |
+| `MCPTLS_LOG_LEVEL`   | Log verbosity level (`debug`, `info`, `warn`) | No       | `info`           |
 
 ### Build and Run a binary
 
@@ -68,12 +68,23 @@ chmod +x ./bin/server
 docker build -t mcp-tls-server .
 ```
 
+Run basic with basic configs
+
 ```bash
 docker run --name mcp-tls-server \
-  -p 8080:8080 \
-  -v "$(pwd)/certs:/app/certs:ro" \
+  -p 9090:9090 \
   -d \
   mcp-tls-server
+```
+
+Run using `docker compose`
+
+```bash
+docker compose up -d
+```
+
+```bash
+docker compose down
 ```
 
 ### API Endpoints

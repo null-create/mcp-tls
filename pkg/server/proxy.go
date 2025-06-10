@@ -14,6 +14,11 @@ import (
 
 // ---- Proxy handlers
 
+const (
+	proxyListenAddr  = ":9000"
+	targetServerAddr = "localhost:9001"
+)
+
 // Intercepts client-to-server and validates tool call requests
 func (h *Handlers) validateAndForward(data []byte) ([]byte, error) {
 	var req codec.JSONRPCRequest
