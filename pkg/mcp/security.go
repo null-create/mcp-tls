@@ -9,6 +9,12 @@ type SecurityMetadata struct {
 	Checksum    string `json:"checksum,omitempty"`      // Hash of the component itself (e.g., hash of the ToolDescription structure)
 }
 
+func (s *SecurityMetadata) IsEmpty() bool {
+	return s.Source == "" && s.Signature == "" &&
+		s.PublicKeyID == "" && s.Version == "" &&
+		s.Checksum == ""
+}
+
 // ContextMetadata holds general metadata for the context snapshot.
 type ContextMetadata struct {
 	ClientID       string            `json:"client_id,omitempty"`       // Identifier for the end-user or client application
