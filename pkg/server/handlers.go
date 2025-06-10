@@ -96,6 +96,7 @@ func (h *Handlers) ValidateToolsHandler(w http.ResponseWriter, r *http.Request) 
 func (h *Handlers) validate(tool *mcp.Tool) mcp.ToolValidationResult {
 	origTool, err := h.toolManager.GetTool(tool.Name)
 	if err != nil {
+		h.log.Error("%v", err)
 		return mcp.ToolValidationResult{
 			Name:  tool.Name,
 			Valid: false,
@@ -105,6 +106,7 @@ func (h *Handlers) validate(tool *mcp.Tool) mcp.ToolValidationResult {
 
 	if tool.SecurityMetadata.Signature != origTool.SecurityMetadata.Signature ||
 		tool.SecurityMetadata.Checksum != origTool.SecurityMetadata.Checksum {
+		h.log.Error("signature or checksum mismatch")
 		return mcp.ToolValidationResult{
 			Name:  tool.Name,
 			Valid: false,
@@ -115,6 +117,7 @@ func (h *Handlers) validate(tool *mcp.Tool) mcp.ToolValidationResult {
 	// validate tool description
 	err = validate.ValidateToolDescription(tool.Description)
 	if err != nil {
+		h.log.Error("tool description validation failed: %v", err)
 		return mcp.ToolValidationResult{
 			Name:  tool.Name,
 			Valid: false,
@@ -125,6 +128,7 @@ func (h *Handlers) validate(tool *mcp.Tool) mcp.ToolValidationResult {
 	// validate tool schema
 	status, err := validate.ValidateToolInputSchema(tool, tool.Arguments)
 	if err != nil {
+		h.log.Error("tool input validation failed: %v", err)
 		return mcp.ToolValidationResult{
 			Name:  tool.Name,
 			Valid: false,
@@ -132,6 +136,7 @@ func (h *Handlers) validate(tool *mcp.Tool) mcp.ToolValidationResult {
 		}
 	}
 	if status == validate.StatusFailed {
+		h.log.Error("%v", status)
 		return mcp.ToolValidationResult{
 			Name:  tool.Name,
 			Valid: false,
@@ -139,6 +144,7 @@ func (h *Handlers) validate(tool *mcp.Tool) mcp.ToolValidationResult {
 		}
 	}
 
+	h.log.Info("tool '%s' validated", tool.Name)
 	return mcp.ToolValidationResult{
 		Name:     tool.Name,
 		Valid:    true,
