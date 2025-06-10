@@ -1,24 +1,17 @@
-# Timeout for the entire linting process
-timeout: 5m
+version: "2"
 
-# Enable specific linters
 linters:
   enable:
     - errcheck
     - govet
     - staticcheck
-    - gofmt
-    - goimports
     - revive
     - unused
-
-# Allow `//nolint` comments
+    
 nolint:
   enable: true
-  # Require explanation for each nolint usage
   require-explanation: true
 
-# Run settings
 run:
   tests: true
   skip-dirs:
@@ -26,29 +19,13 @@ run:
   skip-files:
     - ".*_gen.go"
 
-# Custom issue suppression
 issues:
   exclude-rules:
     - linters:
         - errcheck
       path: pkg/server/router.go
       text: "Error return value of `w.Write` is not checked"
-
     - linters:
         - govet
       path: pkg/server/server.go
       text: "the cancel function returned by context.WithTimeout should be called"
-
-# Optional: customize individual linter behavior
-linters-settings:
-  errcheck:
-    # Ignore common functions that often return ignorable errors
-    exclude-functions:
-      - fmt.Fprintf
-      - fmt.Printf
-      - fmt.Println
-      - w.Write
-
-  revive:
-    ignore-generated-header: true
-    severity: warning
