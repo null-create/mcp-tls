@@ -28,6 +28,8 @@ A lightweight utility server that validates tool definitions for integrity and s
 ├── go.mod
 ├── go.sum
 └── pkg
+    ├── config/           # Project configurations
+    ├── logs/             # Log output directory
     ├── mcp/              # Core MCP-TLS data structures
     ├── server/           # HTTP server, routes, and handlers
     ├── tls/              # TLS transport encryption support
