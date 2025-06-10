@@ -2,3 +2,4 @@ bin/*
 old-files
 certs/*
 .env
+.vscode
