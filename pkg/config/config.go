@@ -3,42 +3,15 @@ package config
 import (
 	"log"
 	"os"
-	"path/filepath"
-	"strconv"
-
-	"github.com/null-create/mcp-tls/pkg/tls"
 )
 
 type Config struct {
 	ServerPort string // (OPTIONAL) server port. defaults to 8080
 	Proxy      bool   // Whether the server functions as a proxy server (defaults to false)
-	TLSConfig  tls.TLSConfig
 }
 
-// LoadConfigs() loads the program configuration from environment variables.
+// LoadConfigs() loads the global configurations from environment variables.
 func LoadConfigs() Config {
-	tlsEnabled, err := strconv.ParseBool(os.Getenv("MCPTLS_ENABLED"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	tlsKeyFile := os.Getenv("MCPTLS_KEY_FILE")
-	if tlsKeyFile == "" {
-		log.Print("⚠️ WARNING MCPTLS_KEY_FILE env var not set. Using defaults.")
-		tlsKeyFile = filepath.Join("certs", "server.key")
-	}
-	tlsCertFile := os.Getenv("MCPTLS_CERT_FILE")
-	if tlsCertFile == "" {
-		log.Print("⚠️ WARNING MCPTLS_CERT_FILE env var not set. Using defaults.")
-		tlsCertFile = filepath.Join("certs", "server.crt")
-	}
-	tlsClientCAFile := os.Getenv("MCPTLS_CLIENT_CA_FILE")
-	if tlsClientCAFile == "" {
-		log.Print("⚠️ WARNING MCPTLS_CLIENT_CA_FILE env var not set. Using defaults.")
-		tlsClientCAFile = filepath.Join("certs", "ca.crt")
-	}
-
-	// check for custom server port
 	serverPort := os.Getenv("MCPTLS_SERVER_PORT")
 	if serverPort == "" {
 		log.Print("⚠️ WARNING MCPTLS_SERVER_PORT env var not set. Using defaults port 8080")
@@ -46,12 +19,6 @@ func LoadConfigs() Config {
 	}
 
 	return Config{
-		TLSConfig: tls.TLSConfig{
-			TLSEnabled:      tlsEnabled,
-			TLSKeyFile:      tlsKeyFile,
-			TLSCertFile:     tlsCertFile,
-			TLSClientCAFile: tlsClientCAFile,
-		},
 		ServerPort: serverPort,
 	}
 }
