@@ -73,7 +73,6 @@ Run basic with basic configs
 ```bash
 docker run --name mcp-tls-server \
   -p 9090:9090 \
-  -e MCPTLS_SERVER_ADDR="0.0.0.0:9090" \
   -d \
   mcp-tls-server
 ```
