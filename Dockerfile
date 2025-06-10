@@ -16,8 +16,7 @@ RUN CGO_ENABLED=0 \
 # Stage 2: Run the binary in a minimal image
 FROM alpine:latest
 ENV MCPTLS_ENABLED="false"
-ENV SERVER_PORT=8080
-ENV LOG_LEVEL=info
+ENV MCPTLS_SERVER_PORT=8080
 
 # Update image and add certificates support
 RUN apk --no-cache update && \
