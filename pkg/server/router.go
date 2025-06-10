@@ -28,8 +28,13 @@ func NewRouter() http.Handler {
 			r.Post("/tool", h.ValidateToolHandler)
 			r.Post("/tools", h.ValidateToolsHandler)
 		})
-		r.Route("/load-tools", func(r chi.Router) {
-			r.Get("/", h.LoadToolsHandler)
+		r.Route("/tools", func(r chi.Router) {
+			r.Route("/register", func(r chi.Router) {
+				r.Post("/", h.ToolRegistrationHandler)
+			})
+			r.Route("/list", func(r chi.Router) {
+				r.Get("/", h.ListToolsHandler)
+			})
 		})
 	})
 
