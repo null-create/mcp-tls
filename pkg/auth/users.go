@@ -12,13 +12,9 @@ type User struct {
 	token string
 }
 
-func (u *User) Name() string  { return u.name }
-func (u *User) Token() string { return u.token }
-func (u *User) AddToken(tok string) {
-	if u.token == "" {
-		u.token = tok
-	}
-}
+func (u *User) Name() string        { return u.name }
+func (u *User) Token() string       { return u.token }
+func (u *User) AddToken(tok string) { u.token = tok }
 
 type UsersManager struct {
 	log   *logger.Logger
