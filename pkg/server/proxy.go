@@ -75,7 +75,7 @@ type toolError string
 
 func (e toolError) Error() string { return string(e) }
 
-func ErrInvalidTool(msg string) error { return toolError("Invalid tool call: " + msg) }
+func ErrInvalidTool(msg string) error { return toolError("Invalid tool: " + msg) }
 
 // Handles framed JSON messages over TCP (e.g., newline-delimited)
 func (h *Handlers) proxyStream(src, dst net.Conn, transform func([]byte) ([]byte, error)) {

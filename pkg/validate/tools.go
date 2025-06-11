@@ -153,7 +153,7 @@ func ValidateToolSecurity(tool *mcp.Tool, toolManager *mcp.ToolManager) error {
 func ValidateToolIntegrity(tool *mcp.Tool) error {
 	// Validate checksum if present
 	if tool.SecurityMetadata.Checksum != "" {
-		expectedChecksum, err := generateToolChecksum(*tool)
+		expectedChecksum, err := GenerateToolChecksum(*tool)
 		if err != nil {
 			return fmt.Errorf("failed to generate checksum for validation: %w", err)
 		}
@@ -164,7 +164,7 @@ func ValidateToolIntegrity(tool *mcp.Tool) error {
 
 	// Validate schema fingerprint if present
 	if tool.SecurityMetadata.Signature != "" {
-		expectedFingerprint, err := generateSchemaFingerprint(tool.InputSchema)
+		expectedFingerprint, err := GenerateSchemaFingerprint(tool.InputSchema)
 		if err != nil {
 			return fmt.Errorf("failed to generate schema fingerprint for validation: %w", err)
 		}
@@ -192,8 +192,8 @@ func canonicalizeJson(data json.RawMessage) (json.RawMessage, error) {
 	return canonical, nil
 }
 
-// generateSchemaFingerprint creates a fingerprint of the schema using SHA-256
-func generateSchemaFingerprint(schema json.RawMessage) (string, error) {
+// GenerateSchemaFingerprint creates a fingerprint of the schema using SHA-256
+func GenerateSchemaFingerprint(schema json.RawMessage) (string, error) {
 	canonical, err := canonicalizeJson(schema)
 	if err != nil {
 		return "", err
@@ -203,8 +203,8 @@ func generateSchemaFingerprint(schema json.RawMessage) (string, error) {
 	return hex.EncodeToString(hash[:]), nil
 }
 
-// generateToolChecksum creates a checksum of the entire tool definition using SHA-256
-func generateToolChecksum(tool mcp.Tool) (string, error) {
+// GenerateToolChecksum creates a checksum of the entire tool definition using SHA-256
+func GenerateToolChecksum(tool mcp.Tool) (string, error) {
 	toolCopy := mcp.Tool{
 		Name:        tool.Name,
 		Description: tool.Description,

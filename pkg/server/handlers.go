@@ -174,7 +174,7 @@ func (h *Handlers) ListToolsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handles tool registration
-func (h *Handlers) ToolRegistrationHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) RegisterToolHandler(w http.ResponseWriter, r *http.Request) {
 	var tool mcp.Tool
 	if err := json.NewDecoder(r.Body).Decode(&tool); err != nil {
 		h.errorMsg(w, err, http.StatusInternalServerError)
@@ -184,6 +184,37 @@ func (h *Handlers) ToolRegistrationHandler(w http.ResponseWriter, r *http.Reques
 		h.errorMsg(w, errors.New("no security metadata found"), http.StatusBadRequest)
 		return
 	}
+
+	// confirm checksums and signatures before registering
+	err := validate.ValidateToolDescription(tool.Description)
+	if err != nil {
+		h.errorMsg(w, fmt.Errorf("tool registration failed. description invalid: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	cs, err := validate.GenerateToolChecksum(tool)
+	if err != nil {
+		h.errorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+	if cs != tool.SecurityMetadata.Checksum {
+		csErr := ErrInvalidTool(fmt.Sprintf("checksum mismatch: given %v calculated %s", tool.SecurityMetadata.Checksum, cs))
+		h.errorMsg(w, csErr, http.StatusBadRequest)
+		return
+	}
+
+	fp, err := validate.GenerateSchemaFingerprint(tool.InputSchema)
+	if err != nil {
+		h.errorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+	if fp != tool.SecurityMetadata.Signature {
+		fpErr := ErrInvalidTool(fmt.Sprintf("fingerprint mismatch: given %v calculated %s", tool.SecurityMetadata.Signature, fp))
+		h.errorMsg(w, fpErr, http.StatusBadRequest)
+		return
+	}
+
+	// tool security metadata has been validated. register tool.
 	if err := h.toolManager.RegisterTool(tool); err != nil {
 		h.errorMsg(w, err, http.StatusInternalServerError)
 		return

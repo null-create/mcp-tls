@@ -42,7 +42,7 @@ func NewRouter() http.Handler {
 		r.Route("/tools", func(r chi.Router) {
 			r.Use(auth.Middleware)
 			r.Route("/register", func(r chi.Router) {
-				r.Post("/", h.ToolRegistrationHandler)
+				r.Post("/", h.RegisterToolHandler)
 			})
 			r.Route("/list", func(r chi.Router) {
 				r.Get("/", h.ListToolsHandler)
