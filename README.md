@@ -77,16 +77,6 @@ docker run --name mcp-tls-server \
   mcp-tls-server
 ```
 
-Run using `docker compose`
-
-```bash
-docker compose up -d
-```
-
-```bash
-docker compose down
-```
-
 ### API Endpoints
 
 #### `POST /api/tools/validate`
