@@ -57,6 +57,7 @@ func (h *Handlers) LoadToolsHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.toolManager.LoadTools(); err != nil {
 		h.errorMsg(w, err, http.StatusInternalServerError)
+		return
 	}
 
 	// send confirmation response

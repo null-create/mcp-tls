@@ -65,16 +65,16 @@ chmod +x ./bin/server
 ### Build and run with Docker
 
 ```bash
-docker build -t mcp-tls-server .
+docker build -t mcptls-server .
 ```
 
 Run basic with basic configs
 
 ```bash
-docker run --name mcp-tls-server \
+docker run --name mcptls-server \
   -p 9090:9090 \
   -d \
-  mcp-tls-server
+  mcptls-server
 ```
 
 ### API Endpoints
