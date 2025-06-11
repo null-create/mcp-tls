@@ -7,25 +7,19 @@ linters:
     - staticcheck
     - revive
     - unused
-    
-nolint:
-  enable: true
-  require-explanation: true
 
 run:
   tests: true
-  skip-dirs:
-    - vendor
-  skip-files:
-    - ".*_gen.go"
+
+skip-dirs:
+  - vendor
+
+skip-files:
+  - ".*_gen.go"
 
 issues:
-  exclude-rules:
-    - linters:
-        - errcheck
-      path: pkg/server/router.go
+  exclude:
+    - path: pkg/server/router.go
       text: "Error return value of `w.Write` is not checked"
-    - linters:
-        - govet
-      path: pkg/server/server.go
+    - path: pkg/server/server.go
       text: "the cancel function returned by context.WithTimeout should be called"

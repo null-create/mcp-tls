@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
+	"github.com/null-create/mcp-tls/pkg/auth"
 	"github.com/null-create/mcp-tls/pkg/mcp"
 	"github.com/null-create/mcp-tls/pkg/util"
 	"github.com/null-create/mcp-tls/pkg/validate"
@@ -16,14 +18,16 @@ import (
 )
 
 type Handlers struct {
-	log         *logger.Logger
-	toolManager *mcp.ToolManager
+	log          *logger.Logger
+	usersManager auth.UsersManager
+	toolManager  *mcp.ToolManager
 }
 
 func NewHandler() Handlers {
 	return Handlers{
-		log:         logger.NewLogger("API", uuid.NewString()),
-		toolManager: mcp.NewToolManager("mcp-tls-tool-manager", "1.0.0", true),
+		log:          logger.NewLogger("API", uuid.NewString()),
+		usersManager: auth.NewUsersManager(),
+		toolManager:  mcp.NewToolManager("mcp-tls-tool-manager", "1.0.0", true),
 	}
 }
 
@@ -33,7 +37,14 @@ func (h *Handlers) errorMsg(w http.ResponseWriter, err error, statusCode int) {
 }
 
 func (h *Handlers) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	if err := json.NewEncoder(w).Encode(`{"status":"ok"}`); err != nil {
+	type HealthResponse struct {
+		Status string `json:"status"`
+	}
+
+	err := json.NewEncoder(w).Encode(HealthResponse{
+		Status: "ok",
+	})
+	if err != nil {
 		h.errorMsg(w, err, http.StatusInternalServerError)
 	}
 }
@@ -185,4 +196,57 @@ func (h *Handlers) ToolRegistrationHandler(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(Response{
 		Msg: fmt.Sprintf("tool '%s' has been registered", tool.Name),
 	})
+}
+
+// Gives a temporary token to the requestor to be able to register and valdiate tools
+// Tokens last an hour by default
+func (h *Handlers) TokenRequestHandler(w http.ResponseWriter, r *http.Request) {
+	userName := r.URL.Query().Get("userName")
+	if userName == "" {
+		h.errorMsg(w, errors.New("missing username"), http.StatusBadRequest)
+		return
+	}
+
+	if !h.usersManager.HasUser(userName) {
+		h.errorMsg(w, errors.New("register before requesting token"), http.StatusBadRequest)
+		return
+	}
+
+	token, err := auth.CreateToken(userName, time.Hour)
+	if err != nil {
+		h.errorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	type Token struct {
+		Tok string `json:"token"`
+	}
+
+	err = json.NewEncoder(w).Encode(Token{Tok: token})
+	if err != nil {
+		h.errorMsg(w, err, http.StatusInternalServerError)
+	}
+}
+
+// Adds a new user to the session so they can be granted a token
+func (h *Handlers) RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
+	userName := r.URL.Query().Get("userName")
+	if userName == "" {
+		h.errorMsg(w, errors.New("missing username"), http.StatusBadRequest)
+		return
+	}
+
+	// will be a no-op if the user is already registered
+	h.usersManager.AddUser(userName)
+
+	type RegisterResponse struct {
+		Message string `json:"message"`
+	}
+
+	err := json.NewEncoder(w).Encode(RegisterResponse{
+		Message: fmt.Sprintf("'%s' registered", userName),
+	})
+	if err != nil {
+		h.errorMsg(w, err, http.StatusInternalServerError)
+	}
 }
