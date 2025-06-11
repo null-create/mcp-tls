@@ -116,19 +116,50 @@ curl -X POST https://localhost:8443/api/tools/validate \
 
 ```json
 {
-  "name": "echo",
-  "description": "Simple echo tool",
+  "name": "example-tool",
+  "description": "This tool performs a sample operation.",
+  "arguments": {
+    "inputA": "value1"
+  },
   "parameters": {
-    "message": {
-      "type": "string"
-    }
+    "param1": "value1",
+    "param2": 42,
+    "param3": true
   },
   "inputSchema": {
     "type": "object",
     "properties": {
-      "message": { "type": "string" }
+      "inputA": {
+        "type": "string"
+      },
+      "inputB": {
+        "type": "number"
+      }
     },
-    "required": ["message"]
+    "required": ["inputA"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "outputA": {
+        "type": "boolean"
+      }
+    },
+    "required": ["outputA"]
+  },
+  "annotations": {
+    "title": "Sample Tool",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "secMetaData": {
+    "source": "trusted-registry",
+    "signature": "abc123signature",
+    "public_key_id": "key-456",
+    "version": "1.0.0",
+    "checksum": "sha256:deadbeef"
   }
 }
 ```
