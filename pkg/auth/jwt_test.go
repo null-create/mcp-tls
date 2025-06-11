@@ -107,7 +107,7 @@ func TestMiddleware_InvalidToken(t *testing.T) {
 
 func TestFromContext(t *testing.T) {
 	claims := &Claims{Username: "ctxuser"}
-	ctx := context.WithValue(context.Background(), ContextUserKeyKey, claims)
+	ctx := context.WithValue(context.Background(), ContextUserKey, claims)
 
 	gotClaims, ok := FromContext(ctx)
 	if !ok {

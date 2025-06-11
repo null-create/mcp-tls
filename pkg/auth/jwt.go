@@ -3,25 +3,37 @@ package auth
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
+type UserKey string
+
 var (
-	ErrNoAuthHeader   = errors.New("authorization header not provided")
-	ErrInvalidToken   = errors.New("invalid token")
-	ErrUnauthorized   = errors.New("unauthorized")
-	jwtSecret         = []byte("your-secret-key-here") // replace with your own secret!
-	ContextUserKeyKey = "user"                         // context key for the parsed claims
+	ErrNoAuthHeader error   = errors.New("authorization header not provided")
+	ErrInvalidToken error   = errors.New("invalid token")
+	ErrUnauthorized error   = errors.New("unauthorized")
+	jwtSecret       []byte  = []byte("")
+	ContextUserKey  UserKey = "user" // context key for the parsed claims
 )
 
 // Claims is a basic custom claims struct you can extend.
 type Claims struct {
 	Username string `json:"username"`
 	jwt.RegisteredClaims
+}
+
+func RetrieveJWTSecret() string {
+	secret := os.Getenv("MCPTLS_JWT_SECRET")
+	if secret == "" {
+		log.Printf("WARNING MCPTLS_JWT_SECRET not set")
+	}
+	return secret
 }
 
 // ParseToken validates the JWT and returns the claims if valid.
@@ -67,7 +79,7 @@ func Middleware(next http.Handler) http.Handler {
 		}
 
 		// Pass claims through context
-		ctx := context.WithValue(r.Context(), ContextUserKeyKey, claims)
+		ctx := context.WithValue(r.Context(), ContextUserKey, claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -95,6 +107,16 @@ func CreateToken(username string, expiry time.Duration) (string, error) {
 
 // FromContext retrieves claims from context in downstream handlers.
 func FromContext(ctx context.Context) (*Claims, bool) {
-	claims, ok := ctx.Value(ContextUserKeyKey).(*Claims)
+	claims, ok := ctx.Value(ContextUserKey).(*Claims)
 	return claims, ok
+}
+
+// AuthContextMiddleware retrieves claims from context in downstream handlers.
+func AuthContextMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, ok := FromContext(r.Context())
+		if !ok {
+			http.Error(w, ErrUnauthorized.Error(), http.StatusUnauthorized)
+		}
+	})
 }
