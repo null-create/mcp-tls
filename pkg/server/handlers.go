@@ -37,7 +37,14 @@ func (h *Handlers) errorMsg(w http.ResponseWriter, err error, statusCode int) {
 }
 
 func (h *Handlers) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	if err := json.NewEncoder(w).Encode(`{"status":"ok"}`); err != nil {
+	type HealthResponse struct {
+		Status string `json:"status"`
+	}
+
+	err := json.NewEncoder(w).Encode(HealthResponse{
+		Status: "ok",
+	})
+	if err != nil {
 		h.errorMsg(w, err, http.StatusInternalServerError)
 	}
 }
