@@ -12,14 +12,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type UserKey string
-
 var (
 	ErrNoAuthHeader error   = errors.New("authorization header not provided")
 	ErrInvalidToken error   = errors.New("invalid token")
 	ErrUnauthorized error   = errors.New("unauthorized")
 	jwtSecret       []byte  = []byte("")
-	ContextUserKey  UserKey = "user" // context key for the parsed claims
+	ContextUserKey  UserKey = "user"
 )
 
 // Claims is a basic custom claims struct you can extend.
