@@ -86,19 +86,9 @@ Validates a single tool definition for schema and checksum integrity.
 **Example**
 
 ```bash
-curl -X POST https://localhost:8443/api/tools/validate \
+curl -X POST https://localhost:9090/api/tools/validate \
      -H "Content-Type: application/json" \
-     -d @tool.json
-```
-
-**Example with TLS enabled:**
-
-```bash
-curl -X POST https://localhost:8443/api/tools/validate \
-     -H "Content-Type: application/json" \
-     --cacert certs/ca.crt \
-     --cert certs/client.crt \
-     --key certs/client.key \
+     -H "Authorization: Bearer <JWT>" \
      -d @tool.json
 ```
 
@@ -159,17 +149,3 @@ curl -X POST https://localhost:8443/api/tools/validate \
 ```bash
 go test -v ./...
 ```
-
-## 🔐 TLS Configuration
-
-TLS is mandatory by default.
-
-### Supported Flags:
-
-| Flag             | Description                               |
-| ---------------- | ----------------------------------------- |
-| `--cert`         | Path to TLS certificate file (PEM format) |
-| `--key`          | Path to TLS private key (PEM format)      |
-| `--ca`           | Path to CA cert for verifying clients     |
-| `--require-mtls` | Require client certificate verification   |
-| `--addr`         | Listen address (default: `:8443`)         |
