@@ -205,7 +205,15 @@ func GenerateSchemaFingerprint(schema json.RawMessage) (string, error) {
 
 // GenerateToolChecksum creates a checksum of the entire tool definition using SHA-256
 func GenerateToolChecksum(tool mcp.Tool) (string, error) {
-	toolCopy := tool
+	toolCopy := mcp.Tool{
+		Name:         tool.Name,
+		Description:  tool.Description,
+		Arguments:    tool.Arguments,
+		Parameters:   tool.Parameters,
+		InputSchema:  tool.InputSchema,
+		OutputSchema: tool.OutputSchema,
+		Annotations:  tool.Annotations,
+	}
 
 	data, err := json.Marshal(toolCopy)
 	if err != nil {
